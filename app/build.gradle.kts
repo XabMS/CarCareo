@@ -88,6 +88,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.reorderable)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.work.runtime)
 

@@ -156,15 +156,18 @@
     <!-- Registrar mantenimiento (P3) -->
     <string name="log_date">Fecha</string>
     <string name="log_odometer">Kilometraje (km)</string>
+    <string name="log_odometer_field">Kilometraje</string>
     <string name="log_tasks_header">Tareas cubiertas</string>
     <string name="log_select_all_overdue">Seleccionar todas las vencidas</string>
-    <string name="log_free_record_hint">Puedes guardar sin seleccionar ninguna tarea (intervención no planificada).</string>
+    <string name="log_free_record_hint">Guarda sin marcar nada para registrar una intervención no planificada.</string>
     <string name="log_extras_show">Añadir taller, coste, notas</string>
     <string name="log_extras_hide">Ocultar taller, coste, notas</string>
+    <string name="log_extras_header">Taller, coste, notas, factura</string>
     <string name="log_workshop">Taller</string>
     <string name="log_cost">Coste</string>
     <string name="log_notes">Notas</string>
-    <string name="log_save">Guardar</string>
+    <string name="log_save">Guardar registro</string>
+    <string name="log_confirms_odometer">También confirma el kilometraje en %1$s km</string>
     <string name="log_km_warn_low">Inferior al último valor confirmado (%1$s km).</string>
     <string name="error_odometer_required">Introduce la lectura del cuentakilómetros</string>
 
@@ -236,4 +239,123 @@
     <string name="notif_odometer_title">Actualiza el kilometraje</string>
     <string name="notif_odometer_body">Abre CarCareo y confirma los km actuales de tus vehículos.</string>
 
+    <!-- ===== Rediseño "Workshop ledger" ===== -->
+
+    <string name="unit_km">km</string>
+    <string name="action_update">Actualizar</string>
+    <string name="action_log_work">Registrar trabajo</string>
+    <string name="status_soon">Pronto</string>
+
+    <string name="garage_odo_estimate">km · est.</string>
+    <string name="garage_odo_confirmed">km · confirmado</string>
+    <string name="garage_no_plan">Sin plan</string>
+
+    <plurals name="garage_overdue_count">
+        <item quantity="one">%1$s tarea vencida</item>
+        <item quantity="many">%1$s tareas vencidas</item>
+        <item quantity="other">%1$s tareas vencidas</item>
+    </plurals>
+    <plurals name="garage_overdue_vehicles">
+        <item quantity="one">%1$s vehículo</item>
+        <item quantity="many">%1$s vehículos</item>
+        <item quantity="other">%1$s vehículos</item>
+    </plurals>
+    <string name="garage_banner_log">Registrar</string>
+    <string name="garage_pick_vehicle">Registrar trabajo de…</string>
+
+    <string name="nav_overview">Resumen</string>
+    <string name="nav_plan">Plan</string>
+    <string name="nav_history">Histórico</string>
+    <plurals name="shell_context_records">
+        <item quantity="one">%1$s registro</item>
+        <item quantity="many">%1$s registros</item>
+        <item quantity="other">%1$s registros</item>
+    </plurals>
+    <plurals name="shell_context_tasks">
+        <item quantity="one">%1$s tarea</item>
+        <item quantity="many">%1$s tareas</item>
+        <item quantity="other">%1$s tareas</item>
+    </plurals>
+    <plurals name="shell_context_inactive">
+        <item quantity="one">%1$s inactiva</item>
+        <item quantity="many">%1$s inactivas</item>
+        <item quantity="other">%1$s inactivas</item>
+    </plurals>
+
+    <string name="overview_road_ahead">Camino por delante</string>
+    <string name="overview_road_window">próximos %1$s km</string>
+    <string name="overview_now">Ahora</string>
+    <string name="timeline_over">%1$s de más</string>
+    <string name="bucket_due_now">Vence ahora</string>
+    <string name="bucket_soon">Pronto</string>
+    <string name="bucket_later">Más adelante</string>
+
+    <!-- Pestaña Histórico -->
+    <string name="history_invoice">Factura</string>
+
+    <!-- Pestaña Plan -->
+    <string name="plan_order_label">Orden en el plan</string>
+    <string name="plan_warn_before_both">Avisar %1$s km / %2$s días antes</string>
+    <string name="plan_warn_before_km">Avisar %1$s km antes</string>
+    <string name="plan_warn_before_days">Avisar %1$s días antes</string>
+    <string name="plan_inactive_chip">Inactiva · toca para reactivar</string>
+    <string name="plan_template_topup">Añadir el resto de la plantilla de %1$s</string>
+    <plurals name="plan_template_topup_count">
+        <item quantity="one">falta %1$s</item>
+        <item quantity="many">faltan %1$s</item>
+        <item quantity="other">faltan %1$s</item>
+    </plurals>
+    <string name="action_activate">Activar</string>
+    <string name="action_deactivate">Desactivar</string>
+
+    <!-- Hoja de edición de tarea -->
+    <string name="task_field_interval_group">Intervalo · lo que ocurra primero</string>
+    <string name="task_field_warn_group">Avisarme antes</string>
+    <string name="unit_months">Meses</string>
+    <string name="unit_days">Días</string>
+    <string name="task_field_interval_help">Rellena al menos uno. Deja un campo vacío para ignorar esa dimensión.</string>
+    <string name="task_field_active_desc">Las tareas inactivas conservan su histórico pero dejan de controlarse.</string>
+    <string name="task_sheet_save">Guardar tarea</string>
+
+    <!-- Flujo nuevo vehículo / configuración del plan -->
+    <string name="form_step">Paso %1$d de %2$d</string>
+    <string name="category_short_moto">Moto</string>
+    <string name="category_short_coche_termico">Coche térmico</string>
+    <string name="category_short_coche_electrico">Coche eléctrico</string>
+    <string name="form_section_vehicle">El vehículo</string>
+    <string name="form_section_mileage">Kilometraje</string>
+    <string name="form_row_bought">Comprado</string>
+    <string name="form_row_current">Actual</string>
+    <string name="form_row_read_on">Leído el</string>
+    <string name="form_row_per_year">Al año</string>
+    <string name="form_mileage_help">La cifra anual solo se usa para estimar los km entre confirmaciones.</string>
+    <string name="form_save_setup">Guardar y configurar plan</string>
+
+    <!-- Configuración del plan -->
+    <string name="plan_setup_recommended">Recomendado</string>
+    <string name="plan_setup_template_title">Plantilla de %1$s</string>
+    <plurals name="plan_setup_template_sub">
+        <item quantity="one">%1$s tarea con intervalos orientativos</item>
+        <item quantity="many">%1$s tareas con intervalos orientativos</item>
+        <item quantity="other">%1$s tareas con intervalos orientativos</item>
+    </plurals>
+    <string name="plan_setup_use_template">Usar esta plantilla</string>
+    <string name="plan_setup_preview_more">+ %1$s más</string>
+    <string name="plan_setup_scratch_title">Empezar de cero</string>
+    <string name="plan_setup_scratch_sub">Añade tú las tareas</string>
+    <string name="plan_setup_copy_sub">Reutiliza las tareas de otro vehículo</string>
+
+    <!-- Ajustes y datos -->
+    <string name="settings_title">Ajustes y datos</string>
+    <string name="settings_section_your_data">Tus datos</string>
+    <string name="settings_export_title">Exportar una copia</string>
+    <string name="settings_export_body">Todos los vehículos, planes y registros en un fichero JSON. No incluye los adjuntos de facturas.</string>
+    <string name="settings_import_title">Importar una copia</string>
+    <string name="settings_import_body">Añade a lo que ya tienes, o reemplázalo todo.</string>
+    <string name="settings_backup_notice">Todo está solo en este teléfono. Una copia es el único respaldo.</string>
+    <plurals name="settings_backup_last">
+        <item quantity="one">La última fue hace %1$s mes.</item>
+        <item quantity="many">La última fue hace %1$s meses.</item>
+        <item quantity="other">La última fue hace %1$s meses.</item>
+    </plurals>
 </resources>

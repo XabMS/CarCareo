@@ -26,6 +26,11 @@ class AppPreferences(context: Context) {
         get() = prefs.getBoolean(KEY_ODOMETER_REMINDER, false)
         set(value) = prefs.edit { putBoolean(KEY_ODOMETER_REMINDER, value) }
 
+    /** Epoch millis of the last successful data export, or 0 if there never was one. */
+    var lastExportAt: Long
+        get() = prefs.getLong(KEY_LAST_EXPORT, 0L)
+        set(value) = prefs.edit { putLong(KEY_LAST_EXPORT, value) }
+
     /** Emits the current toggles and every later change. */
     fun observe(): Flow<NotificationPrefs> = callbackFlow {
         trySend(current())
@@ -63,6 +68,7 @@ class AppPreferences(context: Context) {
     companion object {
         private const val KEY_MAINTENANCE_ALERTS = "notif_maintenance_alerts"
         private const val KEY_ODOMETER_REMINDER = "notif_odometer_reminder"
+        private const val KEY_LAST_EXPORT = "last_export_at"
     }
 }
 

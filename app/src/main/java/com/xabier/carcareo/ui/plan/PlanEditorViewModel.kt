@@ -129,6 +129,16 @@ class PlanEditorViewModel(
         viewModelScope.launch { taskRepository.swapOrder(task, other) }
     }
 
+    /** Persists a drag-to-reorder: [orderedTasks] in their new visual order. */
+    fun persistOrder(orderedTasks: List<MaintenanceTask>) {
+        viewModelScope.launch { taskRepository.persistOrder(orderedTasks) }
+    }
+
+    /**
+     * Applies the category template. [taskRepository.applyTemplate] already skips
+     * names the plan has, so this both seeds an empty plan and "tops up" a
+     * partial one with the tasks it is missing.
+     */
     fun applyTemplate(spanish: Boolean) {
         val category = uiState.value.vehicle?.category ?: return
         viewModelScope.launch {

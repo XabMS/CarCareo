@@ -10,13 +10,11 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.xabier.carcareo.ui.screen.ArchivedVehiclesScreen
 import com.xabier.carcareo.ui.screen.GarageScreen
-import com.xabier.carcareo.ui.screen.HistoryScreen
 import com.xabier.carcareo.ui.screen.LogMaintenanceScreen
-import com.xabier.carcareo.ui.screen.PlanEditorScreen
 import com.xabier.carcareo.ui.screen.PlanSetupScreen
 import com.xabier.carcareo.ui.screen.SettingsScreen
-import com.xabier.carcareo.ui.screen.VehicleDetailScreen
 import com.xabier.carcareo.ui.screen.VehicleFormScreen
+import com.xabier.carcareo.ui.screen.VehicleShellScreen
 
 /**
  * Single NavHost for the whole app. All six screens plus the add/edit-vehicle
@@ -39,20 +37,34 @@ fun CarCareoNavGraph(
                 onOpenVehicle = { navController.navigate(Destinations.vehicleDetail(it)) },
                 onOpenArchived = { navController.navigate(Destinations.ARCHIVED) },
                 onOpenSettings = { navController.navigate(Destinations.SETTINGS) },
+                onLogWork = { vId, taskId ->
+                    navController.navigate(Destinations.logMaintenance(vId, taskId))
+                },
             )
         }
 
-        composable(Destinations.VEHICLE_DETAIL, arguments = vehicleIdArg) { entry ->
-            VehicleDetailScreen(
-                vehicleId = entry.vehicleId(),
-                onBack = navController::popBackStack,
-                onEditVehicle = { navController.navigate(Destinations.vehicleFormEdit(it)) },
-                onEditPlan = { navController.navigate(Destinations.planEditor(it)) },
-                onLogMaintenance = { vId, taskId ->
-                    navController.navigate(Destinations.logMaintenance(vId, taskId))
-                },
-                onViewHistory = { navController.navigate(Destinations.history(it)) },
-            )
+        // The three vehicle-scoped routes all render the same shell — kept as
+        // separate routes so notifications and deep links still resolve.
+        listOf(
+            Destinations.VEHICLE_DETAIL to VehicleTab.OVERVIEW,
+            Destinations.PLAN_EDITOR to VehicleTab.PLAN,
+            Destinations.HISTORY to VehicleTab.HISTORY,
+        ).forEach { (route, tab) ->
+            composable(route, arguments = vehicleIdArg) { entry ->
+                val id = entry.vehicleId()
+                VehicleShellScreen(
+                    vehicleId = id,
+                    initialTab = tab,
+                    onBack = navController::popBackStack,
+                    onEditVehicle = { navController.navigate(Destinations.vehicleFormEdit(it)) },
+                    onLogMaintenance = { vId, taskId ->
+                        navController.navigate(Destinations.logMaintenance(vId, taskId))
+                    },
+                    onEditRecord = { vId, recordId ->
+                        navController.navigate(Destinations.recordEdit(vId, recordId))
+                    },
+                )
+            }
         }
 
         composable(Destinations.VEHICLE_FORM_NEW) {
@@ -85,13 +97,6 @@ fun CarCareoNavGraph(
             )
         }
 
-        composable(Destinations.PLAN_EDITOR, arguments = vehicleIdArg) { entry ->
-            PlanEditorScreen(
-                vehicleId = entry.vehicleId(),
-                onBack = navController::popBackStack,
-            )
-        }
-
         composable(
             Destinations.LOG_MAINTENANCE,
             arguments = vehicleIdArg + navArgument(Destinations.TASK_ID_ARG) {
@@ -116,17 +121,6 @@ fun CarCareoNavGraph(
                 vehicleId = entry.vehicleId(),
                 onBack = navController::popBackStack,
                 onSaved = navController::popBackStack,
-            )
-        }
-
-        composable(Destinations.HISTORY, arguments = vehicleIdArg) { entry ->
-            val id = entry.vehicleId()
-            HistoryScreen(
-                vehicleId = id,
-                onBack = navController::popBackStack,
-                onEditRecord = { recordId ->
-                    navController.navigate(Destinations.recordEdit(id, recordId))
-                },
             )
         }
 

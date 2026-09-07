@@ -6,6 +6,13 @@ package com.xabier.carcareo.ui.navigation
  *
  * Screens that act on one vehicle take its id as a path argument.
  */
+/**
+ * Which tab of the vehicle shell a route lands on. The routes `vehicle/{id}`,
+ * `plan/{id}` and `history/{id}` all render the same shell — notifications and
+ * deep links still resolve, they just select a different tab.
+ */
+enum class VehicleTab { OVERVIEW, PLAN, HISTORY }
+
 object Destinations {
     const val GARAGE = "garage"
     const val SETTINGS = "settings"

@@ -162,15 +162,18 @@
     <!-- Log maintenance (P3) -->
     <string name="log_date">Date</string>
     <string name="log_odometer">Odometer (km)</string>
+    <string name="log_odometer_field">Odometer</string>
     <string name="log_tasks_header">Tasks covered</string>
     <string name="log_select_all_overdue">Select all overdue</string>
-    <string name="log_free_record_hint">You can save without selecting any task (unplanned work).</string>
+    <string name="log_free_record_hint">Save with nothing ticked to record unplanned work.</string>
     <string name="log_extras_show">Add workshop, cost, notes</string>
     <string name="log_extras_hide">Hide workshop, cost, notes</string>
+    <string name="log_extras_header">Workshop, cost, notes, invoice</string>
     <string name="log_workshop">Workshop</string>
     <string name="log_cost">Cost</string>
     <string name="log_notes">Notes</string>
-    <string name="log_save">Save</string>
+    <string name="log_save">Save record</string>
+    <string name="log_confirms_odometer">Also confirms the odometer at %1$s km</string>
     <string name="log_km_warn_low">Lower than the last confirmed value (%1$s km).</string>
     <string name="error_odometer_required">Enter the odometer reading</string>
 
@@ -240,5 +243,120 @@
     <string name="notif_odometer_title">Update your mileage</string>
     <string name="notif_odometer_body">Open CarCareo and confirm the current km for your vehicles.</string>
 
-    <!-- Placeholder copy for screens not built yet. -->
+    <!-- ===== "Workshop ledger" redesign ===== -->
+
+    <!-- Shared -->
+    <string name="unit_km">km</string>
+    <string name="action_update">Update</string>
+    <string name="action_log_work">Log work</string>
+    <string name="status_soon">Soon</string>
+
+    <!-- Garage cards -->
+    <string name="garage_odo_estimate">km · est.</string>
+    <string name="garage_odo_confirmed">km · confirmed</string>
+    <string name="garage_no_plan">No plan</string>
+
+    <!-- Garage attention banner -->
+    <plurals name="garage_overdue_count">
+        <item quantity="one">%1$s task overdue</item>
+        <item quantity="other">%1$s tasks overdue</item>
+    </plurals>
+    <plurals name="garage_overdue_vehicles">
+        <item quantity="one">%1$s vehicle</item>
+        <item quantity="other">%1$s vehicles</item>
+    </plurals>
+    <string name="garage_banner_log">Log</string>
+    <string name="garage_pick_vehicle">Log work for…</string>
+
+    <!-- Vehicle shell -->
+    <string name="nav_overview">Overview</string>
+    <string name="nav_plan">Plan</string>
+    <string name="nav_history">History</string>
+    <plurals name="shell_context_records">
+        <item quantity="one">%1$s record</item>
+        <item quantity="other">%1$s records</item>
+    </plurals>
+    <plurals name="shell_context_tasks">
+        <item quantity="one">%1$s task</item>
+        <item quantity="other">%1$s tasks</item>
+    </plurals>
+    <plurals name="shell_context_inactive">
+        <item quantity="one">%1$s inactive</item>
+        <item quantity="other">%1$s inactive</item>
+    </plurals>
+
+    <!-- Overview: road ahead + buckets -->
+    <string name="overview_road_ahead">Road ahead</string>
+    <string name="overview_road_window">next %1$s km</string>
+    <string name="overview_now">Now</string>
+    <string name="timeline_over">%1$s over</string>
+    <string name="bucket_due_now">Due now</string>
+    <string name="bucket_soon">Soon</string>
+    <string name="bucket_later">Later</string>
+
+    <!-- History tab -->
+    <string name="history_invoice">Invoice</string>
+
+    <!-- Plan tab -->
+    <string name="plan_order_label">Order shown in the plan</string>
+    <string name="plan_warn_before_both">Warn %1$s km / %2$s days before</string>
+    <string name="plan_warn_before_km">Warn %1$s km before</string>
+    <string name="plan_warn_before_days">Warn %1$s days before</string>
+    <string name="plan_inactive_chip">Inactive · tap to resume</string>
+    <string name="plan_template_topup">Add the rest of the %1$s template</string>
+    <plurals name="plan_template_topup_count">
+        <item quantity="one">%1$s left</item>
+        <item quantity="other">%1$s left</item>
+    </plurals>
+    <string name="action_activate">Activate</string>
+    <string name="action_deactivate">Deactivate</string>
+
+    <!-- Task editor sheet -->
+    <string name="task_field_interval_group">Interval · whichever comes first</string>
+    <string name="task_field_warn_group">Warn me before</string>
+    <string name="unit_months">Months</string>
+    <string name="unit_days">Days</string>
+    <string name="task_field_interval_help">Fill in at least one. Leave a field empty to ignore that dimension.</string>
+    <string name="task_field_active_desc">Inactive tasks keep their history but stop being tracked.</string>
+    <string name="task_sheet_save">Save task</string>
+
+    <!-- New-vehicle / plan-setup flow -->
+    <string name="form_step">Step %1$d of %2$d</string>
+    <string name="category_short_moto">Motorbike</string>
+    <string name="category_short_coche_termico">Petrol car</string>
+    <string name="category_short_coche_electrico">Electric car</string>
+    <string name="form_section_vehicle">The vehicle</string>
+    <string name="form_section_mileage">Mileage</string>
+    <string name="form_row_bought">Bought</string>
+    <string name="form_row_current">Current</string>
+    <string name="form_row_read_on">Read on</string>
+    <string name="form_row_per_year">Per year</string>
+    <string name="form_mileage_help">The yearly figure is only used to estimate km between confirmations.</string>
+    <string name="form_save_setup">Save &amp; set up plan</string>
+
+    <!-- Plan setup -->
+    <string name="plan_setup_recommended">Recommended</string>
+    <string name="plan_setup_template_title">%1$s template</string>
+    <plurals name="plan_setup_template_sub">
+        <item quantity="one">%1$s task with guideline intervals</item>
+        <item quantity="other">%1$s tasks with guideline intervals</item>
+    </plurals>
+    <string name="plan_setup_use_template">Use this template</string>
+    <string name="plan_setup_preview_more">+ %1$s more</string>
+    <string name="plan_setup_scratch_title">Start from scratch</string>
+    <string name="plan_setup_scratch_sub">Add tasks yourself</string>
+    <string name="plan_setup_copy_sub">Reuse another vehicle\'s tasks</string>
+
+    <!-- Settings &amp; data -->
+    <string name="settings_title">Settings &amp; data</string>
+    <string name="settings_section_your_data">Your data</string>
+    <string name="settings_export_title">Export a backup</string>
+    <string name="settings_export_body">Every vehicle, plan and record in one JSON file. Invoice attachments are not included.</string>
+    <string name="settings_import_title">Import a backup</string>
+    <string name="settings_import_body">Add to what you have, or replace everything.</string>
+    <string name="settings_backup_notice">Everything lives on this phone only. A backup is the only copy.</string>
+    <plurals name="settings_backup_last">
+        <item quantity="one">Last one was %1$s month ago.</item>
+        <item quantity="other">Last one was %1$s months ago.</item>
+    </plurals>
 </resources>

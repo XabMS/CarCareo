@@ -3,7 +3,10 @@ package com.xabier.carcareo.ui.screen
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,55 +14,82 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.Button
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Event
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xabier.carcareo.R
 import com.xabier.carcareo.domain.TaskStatus
 import com.xabier.carcareo.ui.AppViewModelProvider
-import com.xabier.carcareo.ui.component.DatePickerField
+import com.xabier.carcareo.ui.component.FieldHelper
+import com.xabier.carcareo.ui.component.FieldLabel
+import com.xabier.carcareo.ui.component.HairlineDivider
+import com.xabier.carcareo.ui.component.LabeledField
+import com.xabier.carcareo.ui.component.LedgerAppBar
+import com.xabier.carcareo.ui.component.LedgerCard
+import com.xabier.carcareo.ui.component.LedgerCardShape
+import com.xabier.carcareo.ui.component.LedgerIconButton
+import com.xabier.carcareo.ui.component.LedgerPrimaryButton
+import com.xabier.carcareo.ui.component.LedgerSecondaryButton
+import com.xabier.carcareo.ui.component.LedgerTextAction
+import com.xabier.carcareo.ui.format.formatDate
 import com.xabier.carcareo.ui.format.formatNumber
 import com.xabier.carcareo.ui.log.LogMaintenanceViewModel
 import com.xabier.carcareo.ui.log.LogTaskRow
-import com.xabier.carcareo.ui.plan.color
-import com.xabier.carcareo.ui.plan.labelRes
+import com.xabier.carcareo.ui.plan.footerLabelRes
 import com.xabier.carcareo.ui.plan.remainingSummary
+import com.xabier.carcareo.ui.plan.textColor
+import com.xabier.carcareo.ui.theme.LedgerText
+import com.xabier.carcareo.ui.theme.extraColors
+import com.xabier.carcareo.ui.upcase
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 /**
  * P3 — the most important screen. Must be closeable in under 30 seconds:
  * everything is pre-filled, overdue/upcoming tasks are pre-checked, and no task
- * selection is required.
+ * selection is required. "Workshop ledger" redesign (design handoff frame 1b).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -88,39 +118,27 @@ fun LogMaintenanceScreen(
         }
     }
 
+    val sep = stringResource(R.string.remaining_separator)
+
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        stringResource(
-                            if (state.isEdit) R.string.screen_edit_record
-                            else R.string.screen_log_maintenance,
-                        ),
-                    )
-                },
+            LedgerAppBar(
+                title = stringResource(
+                    if (state.isEdit) R.string.screen_edit_record
+                    else R.string.screen_log_maintenance,
+                ),
+                context = state.vehicleName.ifBlank { null },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = stringResource(R.string.action_back),
-                        )
-                    }
+                    LedgerIconButton(
+                        icon = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.action_back),
+                        onClick = onBack,
+                    )
                 },
             )
         },
-        bottomBar = {
-            Surface(tonalElevation = 3.dp) {
-                Row(
-                    Modifier.fillMaxWidth().padding(16.dp),
-                    horizontalArrangement = Arrangement.End,
-                ) {
-                    Button(onClick = { viewModel.save(onSaved) }) {
-                        Text(stringResource(R.string.log_save))
-                    }
-                }
-            }
-        },
+        bottomBar = { LogFooter(state.odometer, onSave = { viewModel.save(onSaved) }) },
     ) { padding ->
         if (state.loading) {
             Box(Modifier.fillMaxSize().padding(padding))
@@ -132,132 +150,242 @@ fun LogMaintenanceScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 20.dp)
+                .padding(top = 12.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            DatePickerField(
-                label = stringResource(R.string.log_date),
-                value = state.date,
-                onValueChange = viewModel::setDate,
-            )
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                DateBox(
+                    label = stringResource(R.string.log_date),
+                    value = state.date,
+                    onValueChange = viewModel::setDate,
+                    modifier = Modifier.weight(1f),
+                )
+                val lowKm = state.odometer.toIntOrNull()
+                    ?.let { it in 1 until state.lastConfirmedKm } == true
+                LabeledField(
+                    label = stringResource(R.string.log_odometer_field) + sep +
+                        stringResource(R.string.unit_km),
+                    value = state.odometer,
+                    onValueChange = viewModel::setOdometer,
+                    isError = state.odometerError,
+                    errorText = stringResource(R.string.error_odometer_required),
+                    helperText = if (lowKm) {
+                        stringResource(R.string.log_km_warn_low, formatNumber(state.lastConfirmedKm))
+                    } else {
+                        null
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    textStyle = LedgerText.rowMeta.copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                    ),
+                    modifier = Modifier.weight(1f),
+                )
+            }
 
-            OutlinedTextField(
-                value = state.odometer,
-                onValueChange = viewModel::setOdometer,
-                label = { Text(stringResource(R.string.log_odometer)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                isError = state.odometerError,
-                supportingText = when {
-                    state.odometerError -> {
-                        { Text(stringResource(R.string.error_odometer_required)) }
-                    }
-                    state.odometer.toIntOrNull()?.let { it < state.lastConfirmedKm } == true -> {
-                        {
-                            Text(
-                                stringResource(
-                                    R.string.log_km_warn_low,
-                                    formatNumber(state.lastConfirmedKm),
-                                ),
+            if (state.tasks.isNotEmpty()) {
+                Column {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            stringResource(R.string.log_tasks_header).upcase() + sep +
+                                formatNumber(state.selectedTaskIds.size),
+                            style = LedgerText.sectionLabel,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (state.tasks.any { it.computation?.status == TaskStatus.OVERDUE }) {
+                            LedgerTextAction(
+                                text = stringResource(R.string.log_select_all_overdue),
+                                onClick = viewModel::selectAllOverdue,
                             )
                         }
                     }
-                    else -> null
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
+                    Spacer(Modifier.height(6.dp))
+                    LedgerCard {
+                        state.tasks.forEachIndexed { i, row ->
+                            if (i > 0) HairlineDivider()
+                            TaskCheckRow(
+                                row = row,
+                                checked = row.taskId in state.selectedTaskIds,
+                                onToggle = { viewModel.toggleTask(row.taskId) },
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    FieldHelper(stringResource(R.string.log_free_record_hint))
+                }
+            }
 
-            if (state.tasks.isNotEmpty()) {
+            LedgerCard(modifier = Modifier.animateContentSize()) {
                 Row(
-                    Modifier.fillMaxWidth(),
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { viewModel.toggleExtras() }
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
+                    Icon(
+                        if (state.extrasExpanded) Icons.Filled.Remove else Icons.Filled.Add,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp),
+                    )
+                    Spacer(Modifier.width(12.dp))
                     Text(
-                        stringResource(R.string.log_tasks_header),
-                        style = MaterialTheme.typography.titleMedium,
+                        stringResource(R.string.log_extras_header),
+                        style = LedgerText.rowTitle,
+                        color = MaterialTheme.colorScheme.onSurface,
                         modifier = Modifier.weight(1f),
                     )
-                    if (state.tasks.any { it.computation?.status == TaskStatus.OVERDUE }) {
-                        TextButton(onClick = viewModel::selectAllOverdue) {
-                            Text(stringResource(R.string.log_select_all_overdue))
-                        }
-                    }
-                }
-
-                state.tasks.forEach { row ->
-                    TaskCheckRow(
-                        row = row,
-                        checked = row.taskId in state.selectedTaskIds,
-                        onToggle = { viewModel.toggleTask(row.taskId) },
+                    Text(
+                        stringResource(R.string.field_optional).upcase(),
+                        style = LedgerText.rowMeta,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    HorizontalDivider()
                 }
-            }
-
-            Text(
-                stringResource(R.string.log_free_record_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            TextButton(onClick = viewModel::toggleExtras) {
-                Text(
-                    stringResource(
-                        if (state.extrasExpanded) R.string.log_extras_hide
-                        else R.string.log_extras_show,
-                    ),
-                )
-            }
-
-            if (state.extrasExpanded) {
-                OutlinedTextField(
-                    value = state.workshop,
-                    onValueChange = viewModel::setWorkshop,
-                    label = { Text(stringResource(R.string.log_workshop)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = state.cost,
-                    onValueChange = viewModel::setCost,
-                    label = { Text(stringResource(R.string.log_cost)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                OutlinedTextField(
-                    value = state.notes,
-                    onValueChange = viewModel::setNotes,
-                    label = { Text(stringResource(R.string.log_notes)) },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-
-                if (state.attachmentUri == null) {
-                    OutlinedButton(
-                        onClick = {
-                            attachmentPicker.launch(arrayOf("image/*", "application/pdf"))
-                        },
-                    ) { Text(stringResource(R.string.log_attach)) }
-                } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            stringResource(R.string.log_attachment_attached),
-                            modifier = Modifier.weight(1f),
+                if (state.extrasExpanded) {
+                    HairlineDivider()
+                    Column(
+                        Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        LabeledField(
+                            label = stringResource(R.string.log_workshop),
+                            value = state.workshop,
+                            onValueChange = viewModel::setWorkshop,
                         )
-                        TextButton(onClick = { viewModel.setAttachment(null) }) {
-                            Text(stringResource(R.string.log_attachment_remove))
+                        LabeledField(
+                            label = stringResource(R.string.log_cost),
+                            value = state.cost,
+                            onValueChange = viewModel::setCost,
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        )
+                        LabeledField(
+                            label = stringResource(R.string.log_notes),
+                            value = state.notes,
+                            onValueChange = viewModel::setNotes,
+                            singleLine = false,
+                            minHeight = 72.dp,
+                        )
+                        if (state.attachmentUri == null) {
+                            LedgerSecondaryButton(
+                                text = stringResource(R.string.log_attach),
+                                onClick = {
+                                    attachmentPicker.launch(arrayOf("image/*", "application/pdf"))
+                                },
+                            )
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    stringResource(R.string.log_attachment_attached),
+                                    style = LedgerText.rowTitle,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                LedgerTextAction(
+                                    text = stringResource(R.string.log_attachment_remove),
+                                    onClick = { viewModel.setAttachment(null) },
+                                )
+                            }
                         }
+                        FieldHelper(stringResource(R.string.log_attachment_export_warning))
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LogFooter(odometer: String, onSave: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceContainerLowest),
+    ) {
+        HairlineDivider(Modifier.background(MaterialTheme.colorScheme.outline))
+        Column(
+            Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            LedgerPrimaryButton(
+                text = stringResource(R.string.log_save),
+                onClick = onSave,
+                modifier = Modifier.fillMaxWidth(),
+            )
+            val km = odometer.toIntOrNull()
+            if (km != null && km > 0) {
+                Spacer(Modifier.height(8.dp))
                 Text(
-                    stringResource(R.string.log_attachment_export_warning),
-                    style = MaterialTheme.typography.bodySmall,
+                    stringResource(R.string.log_confirms_odometer, formatNumber(km)),
+                    style = LedgerText.supporting,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-
-            Spacer(Modifier.size(8.dp))
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DateBox(
+    label: String,
+    value: LocalDate,
+    onValueChange: (LocalDate) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var showDialog by rememberSaveable { mutableStateOf(false) }
+    Column(modifier) {
+        FieldLabel(label)
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp)
+                .clip(LedgerCardShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                .border(1.dp, MaterialTheme.colorScheme.outline, LedgerCardShape)
+                .heightIn(min = 48.dp)
+                .clickable { showDialog = true }
+                .padding(horizontal = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                formatDate(value),
+                style = LedgerText.rowTitle,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f),
+            )
+            Icon(
+                Icons.Filled.Event,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+
+    if (showDialog) {
+        val initialMillis = value.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+        val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
+        DatePickerDialog(
+            onDismissRequest = { showDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { millis ->
+                        onValueChange(
+                            Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate(),
+                        )
+                    }
+                    showDialog = false
+                }) { Text(stringResource(R.string.action_save)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        ) { DatePicker(state = pickerState) }
     }
 }
 
@@ -267,39 +395,48 @@ private fun TaskCheckRow(
     checked: Boolean,
     onToggle: () -> Unit,
 ) {
+    val computation = row.computation
+    val accent = computation?.status?.textColor() ?: MaterialTheme.colorScheme.outline
+    val band = MaterialTheme.colorScheme.surfaceContainerHigh
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .background(if (checked) band else Color.Transparent)
+            .drawBehind {
+                if (checked) drawRect(accent, size = Size(3.dp.toPx(), size.height))
+            }
             .toggleable(value = checked, onValueChange = { onToggle() })
-            .padding(vertical = 8.dp),
+            .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(checked = checked, onCheckedChange = null)
-        Spacer(Modifier.size(8.dp))
+        Checkbox(
+            checked = checked,
+            onCheckedChange = null,
+            colors = CheckboxDefaults.colors(
+                checkedColor = MaterialTheme.extraColors.ink,
+                checkmarkColor = MaterialTheme.colorScheme.onPrimary,
+                uncheckedColor = MaterialTheme.extraColors.decorativeOutline,
+            ),
+        )
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text(row.name, style = MaterialTheme.typography.bodyLarge)
-            val computation = row.computation
+            Text(
+                row.name,
+                style = LedgerText.rowTitle,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
             if (computation != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        Modifier
-                            .size(8.dp)
-                            .clip(CircleShape)
-                            .background(computation.status.color()),
-                    )
-                    Spacer(Modifier.size(6.dp))
-                    val label = stringResource(computation.status.labelRes)
-                    val detail = if (computation.hasHistory) {
-                        computation.remainingSummary()
-                    } else {
-                        stringResource(R.string.status_no_record)
-                    }
-                    Text(
-                        text = "$label${stringResource(R.string.remaining_separator)}$detail",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                val label = stringResource(computation.status.footerLabelRes)
+                val detail = if (computation.hasHistory) {
+                    computation.remainingSummary()
+                } else {
+                    stringResource(R.string.status_no_record)
                 }
+                Text(
+                    text = label.upcase() + stringResource(R.string.remaining_separator) + detail,
+                    style = LedgerText.rowMeta,
+                    color = accent,
+                )
             }
         }
     }

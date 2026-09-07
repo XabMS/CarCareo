@@ -23,6 +23,7 @@ val TaskStatus.labelRes: Int
         TaskStatus.OK -> R.string.status_ok
     }
 
+/** Fill colour — status stripe, mini bars, timeline dots. */
 @Composable
 fun TaskStatus.color(): Color {
     val c = taskStatusColors(isSystemInDarkTheme())
@@ -30,6 +31,17 @@ fun TaskStatus.color(): Color {
         TaskStatus.OVERDUE -> c.overdue
         TaskStatus.UPCOMING -> c.upcoming
         TaskStatus.OK -> c.ok
+    }
+}
+
+/** Text colour — labels and copy that must clear 4.5:1 at <=12sp. */
+@Composable
+fun TaskStatus.textColor(): Color {
+    val c = taskStatusColors(isSystemInDarkTheme())
+    return when (this) {
+        TaskStatus.OVERDUE -> c.overdueText
+        TaskStatus.UPCOMING -> c.upcomingText
+        TaskStatus.OK -> c.okText
     }
 }
 
@@ -60,17 +72,47 @@ fun TaskComputation.remainingSummary(): String {
     return parts.joinToString(stringResource(R.string.remaining_separator))
 }
 
+/** Fraction of the plan's active tasks that are overdue / upcoming (for the stripe). */
+fun VehiclePlanStatus.overdueFraction(): Float {
+    val n = activeOrdered.size
+    if (n == 0) return 0f
+    return activeOrdered.count { it.computation.status == TaskStatus.OVERDUE }.toFloat() / n
+}
+
+fun VehiclePlanStatus.upcomingFraction(): Float {
+    val n = activeOrdered.size
+    if (n == 0) return 0f
+    return activeOrdered.count { it.computation.status == TaskStatus.UPCOMING }.toFloat() / n
+}
+
+/** Interval consumption 0..1 for the mini bars: 1 - remaining ratio, clamped. */
+fun TaskComputation.intervalConsumed(): Float =
+    (1.0 - urgency).coerceIn(0.0, 1.0).toFloat()
+
 /** Short tail for the garage one-liner: "Oil change · 1.200 km" (km if known, else months). */
 @Composable
-private fun TaskComputation.shortTail(taskName: String): String {
-    val metric = when {
-        kmRemaining != null -> stringResource(R.string.remaining_km, formatNumber(abs(kmRemaining)))
-        daysRemaining != null -> {
-            val months = (abs(daysRemaining) / DAYS_PER_MONTH).roundToInt().coerceAtLeast(1)
-            pluralStringResource(R.plurals.remaining_months, months, formatNumber(months))
-        }
-        else -> ""
+fun TaskComputation.shortTail(taskName: String): String {
+    @Composable
+    fun kmText() = kmRemaining?.let { km ->
+        if (km >= 0) stringResource(R.string.remaining_km, formatNumber(km))
+        else stringResource(R.string.overrun_km, formatNumber(-km))
     }
+
+    @Composable
+    fun monthsText() = daysRemaining?.let { days ->
+        val months = (abs(days) / DAYS_PER_MONTH).roundToInt().coerceAtLeast(1)
+        if (days >= 0) pluralStringResource(R.plurals.remaining_months, months, formatNumber(months))
+        else pluralStringResource(R.plurals.overrun_months, months, formatNumber(months))
+    }
+
+    // Show the dimension that's actually breached first, so an overdue task
+    // never reads "… km left".
+    val kmOverrun = kmRemaining != null && kmRemaining < 0
+    val timeOverrun = daysRemaining != null && daysRemaining < 0
+    val metric = when {
+        timeOverrun && !kmOverrun -> monthsText()
+        else -> kmText() ?: monthsText()
+    } ?: ""
     return listOf(taskName, metric).filter { it.isNotBlank() }
         .joinToString(stringResource(R.string.remaining_separator))
 }
@@ -89,3 +131,22 @@ fun VehiclePlanStatus.garageLine(): String? {
         stringResource(R.string.garage_line_next, tail)
     }
 }
+
+/**
+ * The garage-card footer tail without the state prefix: "Oil change · 1.200 km".
+ * The state word is shown separately as a coloured label in the redesign.
+ */
+@Composable
+fun VehiclePlanStatus.garageTail(): String? {
+    val top = activeOrdered.firstOrNull() ?: return null
+    return top.computation.shortTail(top.task.name)
+}
+
+/** State word for the garage footer / buckets: OVERDUE / SOON / UP TO DATE. */
+@get:StringRes
+val TaskStatus.footerLabelRes: Int
+    get() = when (this) {
+        TaskStatus.OVERDUE -> R.string.status_overdue
+        TaskStatus.UPCOMING -> R.string.status_soon
+        TaskStatus.OK -> R.string.status_ok
+    }

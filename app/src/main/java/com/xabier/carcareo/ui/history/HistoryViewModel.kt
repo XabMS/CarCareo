@@ -21,6 +21,8 @@ import kotlinx.coroutines.launch
 data class HistoryUiState(
     val loading: Boolean = true,
     val entries: List<RecordWithTasks> = emptyList(),
+    /** Unfiltered record count — for the shell's "N RECORDS" context line. */
+    val totalRecords: Int = 0,
     /** Tasks that appear in at least one record — the filter options. */
     val filterableTasks: List<MaintenanceTask> = emptyList(),
     val activeFilterTaskId: Long? = null,
@@ -53,6 +55,7 @@ class HistoryViewModel(
             HistoryUiState(
                 loading = false,
                 entries = shown,
+                totalRecords = allRecords.size,
                 filterableTasks = tasks
                     .filter { task -> records.any { rwt -> rwt.tasks.any { it.id == task.id } } },
                 activeFilterTaskId = filterTaskId,

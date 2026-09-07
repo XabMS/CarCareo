@@ -41,6 +41,18 @@ class MaintenanceTaskRepository(private val dao: MaintenanceTaskDao) {
     }
 
     /**
+     * Persists a full manual reordering (drag-to-reorder in the plan editor):
+     * [orderedTasks] in their new visual order, `sortOrder` rewritten to the
+     * index. Only rows that actually changed are written.
+     */
+    suspend fun persistOrder(orderedTasks: List<MaintenanceTask>) {
+        val changed = orderedTasks.mapIndexedNotNull { index, task ->
+            if (task.sortOrder == index) null else task.copy(sortOrder = index)
+        }
+        if (changed.isNotEmpty()) dao.updateAll(changed)
+    }
+
+    /**
      * Applies the built-in template for [category]. Does not clear existing tasks,
      * and skips any template task whose name the vehicle already uses — applying a
      * template twice must not leave two "Engine oil" lines behind (see [addNew]).

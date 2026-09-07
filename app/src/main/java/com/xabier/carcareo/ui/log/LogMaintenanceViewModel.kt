@@ -30,6 +30,7 @@ data class LogTaskRow(
 data class LogMaintenanceUiState(
     val loading: Boolean = true,
     val isEdit: Boolean = false,
+    val vehicleName: String = "",
     val date: LocalDate = LocalDate.now(),
     val odometer: String = "",
     val lastConfirmedKm: Int = 0,
@@ -90,6 +91,7 @@ class LogMaintenanceViewModel(
                     it.copy(
                         loading = false,
                         isEdit = true,
+                        vehicleName = vehicle.name,
                         date = existing.record.date,
                         odometer = existing.record.odometerKm.toString(),
                         lastConfirmedKm = vehicle.lastConfirmedKm,
@@ -121,6 +123,7 @@ class LogMaintenanceViewModel(
                 _ui.update {
                     it.copy(
                         loading = false,
+                        vehicleName = vehicle.name,
                         odometer = status.currentKm.toString(),
                         lastConfirmedKm = vehicle.lastConfirmedKm,
                         tasks = activeRows,

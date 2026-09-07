@@ -82,6 +82,7 @@ object AppViewModelProvider {
             SettingsViewModel(
                 backupRepository = application.container.backupRepository,
                 preferences = application.container.appPreferences,
+                vehicleRepository = application.container.vehicleRepository,
                 reschedule = { prefs -> WorkScheduler.apply(application, prefs) },
             )
         }

@@ -25,6 +25,13 @@ fun formatNumber(value: Long, locale: Locale = Locale.getDefault()): String =
 fun formatDate(date: LocalDate, locale: Locale = Locale.getDefault()): String =
     date.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(locale))
 
+/** Day + short month, e.g. "14 mar" / "Mar 14" — for the history year tables. */
+fun formatDayMonth(date: LocalDate, locale: Locale = Locale.getDefault()): String =
+    date.format(DateTimeFormatter.ofPattern(dayMonthPattern(locale), locale))
+
+private fun dayMonthPattern(locale: Locale): String =
+    if (locale.language == "en") "MMM d" else "d MMM"
+
 /** Currency in the device's locale (symbol + grouping + fraction digits). */
 fun formatCost(amount: BigDecimal, locale: Locale = Locale.getDefault()): String =
     NumberFormat.getCurrencyInstance(locale).format(amount)

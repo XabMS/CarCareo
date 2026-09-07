@@ -12,3 +12,13 @@ import androidx.compose.ui.text.intl.Locale
 @Composable
 @ReadOnlyComposable
 fun isSpanishUi(): Boolean = Locale.current.language == "es"
+
+/**
+ * Uppercase a display string using the *composition* locale, so it recomposes on
+ * a locale change and satisfies the `NonObservableLocale` lint. The "Workshop
+ * ledger" design uppercases most mono labels, section headers and button text.
+ */
+@Composable
+@ReadOnlyComposable
+fun String.upcase(): String =
+    uppercase(java.util.Locale.forLanguageTag(Locale.current.toLanguageTag()))
