@@ -89,6 +89,28 @@ class BackupCodecTest {
     }
 
     @Test
+    fun `two tasks with the same name in one vehicle are rejected`() {
+        // Records link to tasks by name within the vehicle, so this file cannot be
+        // imported without guessing which "Aceite motor" a record meant.
+        val json = BackupCodec.encode(
+            sample().let {
+                it.copy(
+                    vehicles = listOf(
+                        it.vehicles[0].copy(
+                            tasks = listOf(
+                                BackupTask(name = "Aceite motor", intervalKm = 8_000),
+                                BackupTask(name = "aceite MOTOR", intervalMonths = 12),
+                            ),
+                        ),
+                    ),
+                )
+            },
+        )
+        val e = assertThrows(BackupException::class.java) { BackupCodec.decode(json) }
+        assertEquals(BackupError.MALFORMED, e.error)
+    }
+
+    @Test
     fun `newer schema version is rejected distinctly`() {
         val json = BackupCodec.encode(sample().copy(schemaVersion = 99))
         val e = assertThrows(BackupException::class.java) { BackupCodec.decode(json) }

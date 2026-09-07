@@ -77,8 +77,9 @@ class LogMaintenanceViewModel(
                 // Edit: prefill from the record, select the tasks it actually covers
                 // (including any that are now inactive, which have no status row).
                 val linkedIds = existing.tasks.map { it.id }.toSet()
+                val activeIds = activeRows.mapTo(HashSet(), LogTaskRow::taskId)
                 val extraRows = existing.tasks
-                    .filter { it.id !in activeRows.map(LogTaskRow::taskId) }
+                    .filter { it.id !in activeIds }
                     .map { LogTaskRow(it.id, it.name, computation = null) }
                 _ui.update {
                     it.copy(

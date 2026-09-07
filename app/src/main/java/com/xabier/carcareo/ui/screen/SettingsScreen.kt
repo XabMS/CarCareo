@@ -87,16 +87,16 @@ fun SettingsScreen(
         if (!granted) scope.launch { snackbar.showSnackbar(permissionDeniedMsg) }
     }
 
-    fun hasNotificationPermission(): Boolean =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
-            ContextCompat.checkSelfPermission(
-                context, Manifest.permission.POST_NOTIFICATIONS,
-            ) == PackageManager.PERMISSION_GRANTED
-
+    // POST_NOTIFICATIONS only exists from API 33; below that, notifications are
+    // granted at install time and there is nothing to ask for. The version check
+    // is written inline so lint can see the constant is never touched on older
+    // devices.
     fun requestNotificationPermissionIfNeeded() {
-        if (!hasNotificationPermission()) {
-            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        val granted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.POST_NOTIFICATIONS,
+        ) == PackageManager.PERMISSION_GRANTED
+        if (!granted) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
     }
 
     val exportLauncher = rememberLauncherForActivityResult(

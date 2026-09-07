@@ -20,9 +20,13 @@ data class TaskDraft(
     val notes: String = "",
     val active: Boolean = true,
     val nameError: Boolean = false,
+    /** Another task on the same vehicle already uses this name. */
+    val duplicateNameError: Boolean = false,
     val intervalError: Boolean = false,
 ) : Parcelable {
     val isEdit: Boolean get() = id != null
+
+    val hasError: Boolean get() = nameError || duplicateNameError || intervalError
 
     companion object {
         const val DEFAULT_WARN_KM = 1_000

@@ -106,6 +106,7 @@
     <string name="field_warn_days">Avisar estos días antes</string>
     <string name="field_task_active">Activa</string>
     <string name="error_task_name_required">Introduce un nombre de tarea</string>
+    <string name="error_task_name_duplicate">Este vehículo ya tiene una tarea con ese nombre</string>
     <string name="error_task_interval_required">Introduce al menos un intervalo</string>
 
     <!-- Resumen de intervalo -->
@@ -234,5 +235,4 @@
     <string name="notif_odometer_title">Actualiza el kilometraje</string>
     <string name="notif_odometer_body">Abre CarCareo y confirma los km actuales de tus vehículos.</string>
 
-    <string name="placeholder_not_implemented">Aún no implementado</string>
 </resources>

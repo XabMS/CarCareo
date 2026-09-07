@@ -51,9 +51,21 @@ class PlanEditorViewModel(
         val months = draft.intervalMonths.trim().toIntOrNull()
 
         val nameError = name.isEmpty()
+        // Record<->task links are serialized by task name within the vehicle
+        // (spec 7), so two tasks sharing a name would make a backup ambiguous and
+        // silently merge their history on import. Refuse it at the source.
+        val duplicateNameError = !nameError && uiState.value.tasks.any {
+            it.id != draft.id && it.name.equals(name, ignoreCase = true)
+        }
         val intervalError = !MaintenanceTaskRules.intervalsValid(km, months)
-        if (nameError || intervalError) {
-            onResult(draft.copy(nameError = nameError, intervalError = intervalError))
+        if (nameError || duplicateNameError || intervalError) {
+            onResult(
+                draft.copy(
+                    nameError = nameError,
+                    duplicateNameError = duplicateNameError,
+                    intervalError = intervalError,
+                ),
+            )
             return
         }
 
@@ -90,7 +102,13 @@ class PlanEditorViewModel(
                     ),
                 )
             }
-            onResult(draft.copy(nameError = false, intervalError = false))
+            onResult(
+                draft.copy(
+                    nameError = false,
+                    duplicateNameError = false,
+                    intervalError = false,
+                ),
+            )
         }
     }
 

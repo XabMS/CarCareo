@@ -71,8 +71,15 @@ object BackupCodec {
             require(v.lastConfirmedKm >= 0)
             require(v.annualKmEstimate >= 0)
 
+            // Records reference tasks by name within the vehicle (spec 7), so a
+            // repeated name makes those links ambiguous. Rejecting the file is the
+            // honest outcome: importing it would silently merge two tasks' history.
+            val taskNames = HashSet<String>()
             for (t in v.tasks) {
                 require(t.name.isNotBlank())
+                require(taskNames.add(t.name.lowercase())) {
+                    "vehicle '${v.name}' has more than one task named '${t.name}'"
+                }
                 require(t.intervalKm != null || t.intervalMonths != null) {
                     "task '${t.name}' has no interval"
                 }

@@ -45,7 +45,9 @@ abstract class AppDatabase : RoomDatabase() {
                 AppDatabase::class.java,
                 "carcareo.db",
             )
-                // FK cascades are declared on the entities; Room needs this to honour them.
+                // Room turns SQLite foreign keys on for us, so the ON DELETE CASCADE
+                // declared on the entities is what wipes a vehicle's tasks, records
+                // and cross-refs (relied on by the "replace all" import).
                 .build()
     }
 }

@@ -38,7 +38,32 @@ class PlanStatusCalculatorTest {
         assertEquals(Execution(today.minusMonths(1), 42_000), byTask[2])
     }
 
-    // 11 — with the last record gone, the task falls back to the baseline
+    // 11 — dropping the newest record puts the task back in its previous state
+    @Test
+    fun `deleting the last record returns the task to the previous one`() {
+        val v = vehicle(lastKm = 60_000, lastDate = today, annual = 12_000)
+        val oil = task(1, km = 10_000)
+        val older = record(1, LocalDate.of(2026, 1, 1), km = 40_000, tasks = listOf(oil))
+        val newest = record(2, LocalDate.of(2026, 5, 1), km = 55_000, tasks = listOf(oil))
+
+        fun statusWith(records: List<RecordWithTasks>) =
+            PlanStatusCalculator.forVehicle(v, listOf(oil), records, today)
+                .activeOrdered.single().computation
+
+        val before = statusWith(listOf(older, newest))
+        assertEquals(65_000, before.dueKm)          // 55_000 + 10_000
+        assertEquals(TaskStatus.OK, before.status)
+
+        // The newest record is deleted; the task must fall back to the older one,
+        // not to the vehicle baseline and not to a stale computed state.
+        val after = statusWith(listOf(older))
+        assertEquals(LocalDate.of(2026, 1, 1), after.lastDoneDate)
+        assertEquals(50_000, after.dueKm)           // 40_000 + 10_000
+        assertEquals(TaskStatus.OVERDUE, after.status)
+        assertTrue(after.hasHistory)
+    }
+
+    // 11b — with every record gone, the task falls back to the vehicle baseline
     @Test
     fun `no records means the task uses the vehicle baseline`() {
         val v = vehicle(lastKm = 60_000, lastDate = today, annual = 12_000,

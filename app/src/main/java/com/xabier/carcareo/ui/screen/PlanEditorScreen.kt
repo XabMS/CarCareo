@@ -133,11 +133,7 @@ fun PlanEditorScreen(
             onChange = { editingDraft = it },
             onSave = {
                 viewModel.saveTask(draft) { result ->
-                    if (result.nameError || result.intervalError) {
-                        editingDraft = result
-                    } else {
-                        editingDraft = null
-                    }
+                    editingDraft = if (result.hasError) result else null
                 }
             },
         )
@@ -301,14 +297,19 @@ private fun TaskEditorSheet(
                 style = MaterialTheme.typography.titleLarge,
             )
 
+            val nameErrorRes = when {
+                draft.nameError -> R.string.error_task_name_required
+                draft.duplicateNameError -> R.string.error_task_name_duplicate
+                else -> null
+            }
             OutlinedTextField(
                 value = draft.name,
-                onValueChange = { onChange(draft.copy(name = it, nameError = false)) },
+                onValueChange = {
+                    onChange(draft.copy(name = it, nameError = false, duplicateNameError = false))
+                },
                 label = { Text(stringResource(R.string.field_task_name)) },
-                isError = draft.nameError,
-                supportingText = if (draft.nameError) {
-                    { Text(stringResource(R.string.error_task_name_required)) }
-                } else null,
+                isError = nameErrorRes != null,
+                supportingText = nameErrorRes?.let { { Text(stringResource(it)) } },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )

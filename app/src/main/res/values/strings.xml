@@ -115,6 +115,7 @@
     <string name="field_warn_days">Warn this many days before</string>
     <string name="field_task_active">Active</string>
     <string name="error_task_name_required">Enter a task name</string>
+    <string name="error_task_name_duplicate">This vehicle already has a task with that name</string>
     <string name="error_task_interval_required">Enter at least one interval</string>
 
     <!-- Interval summary -->
@@ -239,5 +240,4 @@
     <string name="notif_odometer_body">Open CarCareo and confirm the current km for your vehicles.</string>
 
     <!-- Placeholder copy for screens not built yet. -->
-    <string name="placeholder_not_implemented">Not implemented yet</string>
 </resources>

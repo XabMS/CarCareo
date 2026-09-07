@@ -40,22 +40,38 @@ class MaintenanceTaskRepository(private val dao: MaintenanceTaskDao) {
         dao.updateAll(listOf(a.copy(sortOrder = b.sortOrder), b.copy(sortOrder = a.sortOrder)))
     }
 
-    /** Applies the built-in template for [category]. Does not clear existing tasks. */
+    /**
+     * Applies the built-in template for [category]. Does not clear existing tasks,
+     * and skips any template task whose name the vehicle already uses — applying a
+     * template twice must not leave two "Engine oil" lines behind (see [addNew]).
+     */
     suspend fun applyTemplate(vehicleId: Long, category: VehicleCategory, spanish: Boolean) {
-        val base = (dao.getForVehicle(vehicleId).maxOfOrNull { it.sortOrder } ?: -1) + 1
-        val tasks = MaintenanceTemplates.instantiate(category, vehicleId, spanish)
-            .mapIndexed { i, t -> t.copy(sortOrder = base + i) }
-        dao.insertAll(tasks)
+        addNew(vehicleId, MaintenanceTemplates.instantiate(category, vehicleId, spanish))
     }
 
     /** Copies every task from [sourceVehicleId] into [targetVehicleId]. */
     suspend fun duplicatePlan(sourceVehicleId: Long, targetVehicleId: Long) {
-        val base = (dao.getForVehicle(targetVehicleId).maxOfOrNull { it.sortOrder } ?: -1) + 1
         val copies = dao.getForVehicle(sourceVehicleId)
             .sortedBy { it.sortOrder }
-            .mapIndexed { i, t ->
-                t.copy(id = 0, vehicleId = targetVehicleId, sortOrder = base + i)
-            }
-        dao.insertAll(copies)
+            .map { it.copy(id = 0, vehicleId = targetVehicleId) }
+        addNew(targetVehicleId, copies)
+    }
+
+    /**
+     * Appends [candidates] to the vehicle's plan, dropping names it already has.
+     *
+     * Task names must stay unique per vehicle: backups link records to tasks by
+     * name within the vehicle (spec 7), so a duplicate would make the file
+     * ambiguous and merge two tasks' history on import.
+     */
+    private suspend fun addNew(vehicleId: Long, candidates: List<MaintenanceTask>) {
+        val existing = dao.getForVehicle(vehicleId)
+        val taken = existing.mapTo(HashSet()) { it.name.lowercase() }
+        var order = (existing.maxOfOrNull { it.sortOrder } ?: -1) + 1
+
+        val toInsert = candidates.mapNotNull { task ->
+            if (!taken.add(task.name.lowercase())) null else task.copy(sortOrder = order++)
+        }
+        if (toInsert.isNotEmpty()) dao.insertAll(toInsert)
     }
 }

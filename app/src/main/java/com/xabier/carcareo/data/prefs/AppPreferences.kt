@@ -2,6 +2,7 @@ package com.xabier.carcareo.data.prefs
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -19,11 +20,11 @@ class AppPreferences(context: Context) {
 
     var maintenanceAlertsEnabled: Boolean
         get() = prefs.getBoolean(KEY_MAINTENANCE_ALERTS, false)
-        set(value) = prefs.edit().putBoolean(KEY_MAINTENANCE_ALERTS, value).apply()
+        set(value) = prefs.edit { putBoolean(KEY_MAINTENANCE_ALERTS, value) }
 
     var odometerReminderEnabled: Boolean
         get() = prefs.getBoolean(KEY_ODOMETER_REMINDER, false)
-        set(value) = prefs.edit().putBoolean(KEY_ODOMETER_REMINDER, value).apply()
+        set(value) = prefs.edit { putBoolean(KEY_ODOMETER_REMINDER, value) }
 
     /** Emits the current toggles and every later change. */
     fun observe(): Flow<NotificationPrefs> = callbackFlow {
@@ -50,10 +51,10 @@ class AppPreferences(context: Context) {
     )
 
     fun rememberAlert(vehicleId: Long, epochDay: Long, status: String) {
-        prefs.edit()
-            .putLong(alertDayKey(vehicleId), epochDay)
-            .putString(alertStatusKey(vehicleId), status)
-            .apply()
+        prefs.edit {
+            putLong(alertDayKey(vehicleId), epochDay)
+            putString(alertStatusKey(vehicleId), status)
+        }
     }
 
     private fun alertDayKey(id: Long) = "alert_day_$id"

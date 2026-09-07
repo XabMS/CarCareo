@@ -10,7 +10,7 @@ import com.xabier.carcareo.domain.OdometerReading
 import com.xabier.carcareo.domain.PlanStatusCalculator
 import com.xabier.carcareo.domain.VehiclePlanStatus
 import com.xabier.carcareo.domain.odometerReading
-import java.time.LocalDate
+import com.xabier.carcareo.domain.todayFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -34,14 +34,15 @@ class GarageViewModel(
     recordRepository: MaintenanceRecordRepository,
 ) : ViewModel() {
 
-    private val today: LocalDate = LocalDate.now()
-
     val uiState: StateFlow<GarageUiState> =
         combine(
             vehicleRepository.observeActive(),
             taskRepository.observeAll(),
             recordRepository.observeAllWithTasks(),
-        ) { vehicles, allTasks, allRecords ->
+            // Part of the inputs, not a constant: the garage must re-compute when
+            // the day rolls over, not only when the data changes.
+            todayFlow(),
+        ) { vehicles, allTasks, allRecords, today ->
             val tasksByVehicle = allTasks.groupBy { it.vehicleId }
             val recordsByVehicle = allRecords.groupBy { it.record.vehicleId }
 
