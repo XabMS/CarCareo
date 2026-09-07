@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app is local-only and portability is via explicit JSON export/import
+     (spec section 7), so nothing is included in cloud backup or device transfer.
+     This keeps auto-backup from silently restoring stale data over a manual import. -->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude domain="root" path="." />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="root" path="." />
+    </device-transfer>
+</data-extraction-rules>

@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Español. Se aplica automáticamente cuando el dispositivo está en español. -->
+<resources>
+    <string name="app_name">CarCareo</string>
+
+    <string name="screen_garage">Garaje</string>
+    <string name="screen_vehicle_detail">Vehículo</string>
+    <string name="screen_log_maintenance">Registrar mantenimiento</string>
+    <string name="screen_plan_editor">Plan de mantenimiento</string>
+    <string name="screen_history">Histórico</string>
+    <string name="screen_settings">Ajustes</string>
+    <string name="screen_archived">Vehículos archivados</string>
+    <string name="screen_new_vehicle">Nuevo vehículo</string>
+    <string name="screen_edit_vehicle">Editar vehículo</string>
+
+    <string name="category_moto_termica">Moto térmica</string>
+    <string name="category_coche_termico">Coche térmico</string>
+    <string name="category_coche_electrico">Coche eléctrico</string>
+
+    <string name="action_add_vehicle">Añadir vehículo</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_delete">Borrar</string>
+    <string name="action_edit">Editar</string>
+    <string name="action_archive">Archivar</string>
+    <string name="action_unarchive">Desarchivar</string>
+    <string name="action_more_options">Más opciones</string>
+    <string name="action_back">Atrás</string>
+
+    <string name="garage_empty_title">Aún no hay vehículos</string>
+    <string name="garage_empty_body">Añade tu primer vehículo para empezar a controlar su mantenimiento.</string>
+    <string name="garage_menu_archived">Vehículos archivados</string>
+    <string name="garage_menu_settings">Ajustes y datos</string>
+
+    <string name="odometer_title">Kilometraje</string>
+    <string name="odometer_confirmed_today">confirmado hoy</string>
+    <string name="km_value">%1$s km</string>
+    <string name="action_update_km">Actualizar km</string>
+    <plurals name="estimated_days_ago">
+        <item quantity="one">estimado hace 1 día</item>
+        <item quantity="many">estimado hace %1$s días</item>
+        <item quantity="other">estimado hace %1$s días</item>
+    </plurals>
+    <plurals name="estimated_months_ago">
+        <item quantity="one">estimado hace 1 mes</item>
+        <item quantity="many">estimado hace %1$s meses</item>
+        <item quantity="other">estimado hace %1$s meses</item>
+    </plurals>
+
+    <string name="update_km_title">Actualizar kilometraje</string>
+    <string name="update_km_field">Kilómetros actuales</string>
+    <string name="update_km_date">Fecha de la lectura</string>
+    <string name="update_km_warn_minor">Es inferior al último valor confirmado (%1$s km).</string>
+    <string name="update_km_warn_major">Es más de un 10%% inferior al último valor confirmado (%1$s km). Revisa la lectura.</string>
+    <string name="update_km_confirm_major">Confirmo que esta lectura inferior es correcta</string>
+
+    <string name="detail_section_plan">Plan de mantenimiento</string>
+    <string name="detail_plan_empty">Todavía no hay tareas en el plan.</string>
+    <string name="detail_action_log">Registrar mantenimiento</string>
+    <string name="detail_action_edit_plan">Editar plan</string>
+    <string name="detail_action_history">Ver histórico</string>
+    <string name="detail_action_edit_vehicle">Editar vehículo</string>
+    <string name="detail_archive_confirm_title">¿Archivar este vehículo?</string>
+    <string name="detail_archive_confirm_body">Se ocultará del garaje. Sus datos se conservan y podrás desarchivarlo más tarde.</string>
+
+    <string name="field_name">Nombre</string>
+    <string name="field_name_hint">Ej. Hornet</string>
+    <string name="field_category">Categoría</string>
+    <string name="field_make">Marca</string>
+    <string name="field_model">Modelo</string>
+    <string name="field_year">Año</string>
+    <string name="field_plate">Matrícula</string>
+    <string name="field_last_km">Últimos km confirmados</string>
+    <string name="field_last_km_date">Confirmado el</string>
+    <string name="field_annual_km">Estimación de km anuales</string>
+    <string name="field_annual_km_help">Se usa para estimar el kilometraje entre confirmaciones.</string>
+    <string name="field_purchase_date">Fecha de compra</string>
+    <string name="field_notes">Notas</string>
+    <string name="field_optional">Opcional</string>
+    <string name="error_name_required">Introduce un nombre para el vehículo</string>
+    <string name="error_km_invalid">Introduce un valor de km válido</string>
+    <string name="form_fix_errors">Revisa los campos marcados</string>
+
+    <string name="archived_empty">No hay vehículos archivados.</string>
+
+    <!-- Editor de plan (P4) -->
+    <string name="plan_add_task">Añadir tarea</string>
+    <string name="plan_empty_title">Todavía no hay tareas</string>
+    <string name="plan_empty_body">Añade algunas tareas o aplica la plantilla de esta categoría. Con tres tareas ya puedes empezar.</string>
+    <string name="plan_apply_template">Aplicar plantilla</string>
+    <string name="template_disclaimer">Valores orientativos. Consulta el manual de tu vehículo y ajústalos.</string>
+    <string name="task_inactive">Inactiva</string>
+    <string name="action_move_up">Subir</string>
+    <string name="action_move_down">Bajar</string>
+    <string name="delete_task_confirm_title">¿Borrar esta tarea?</string>
+    <string name="delete_task_confirm_body">Su histórico de mantenimiento se conserva, pero la tarea se quita del plan. Si quieres conservar el histórico y dejar de controlarla, desactívala en su lugar.</string>
+
+    <!-- Hoja de edición de tarea -->
+    <string name="task_sheet_new">Nueva tarea</string>
+    <string name="task_sheet_edit">Editar tarea</string>
+    <string name="field_task_name">Nombre de la tarea</string>
+    <string name="field_interval_km">Intervalo (km)</string>
+    <string name="field_interval_months">Intervalo (meses)</string>
+    <string name="field_interval_help">Rellena al menos uno. Si rellenas ambos, vence lo que ocurra primero.</string>
+    <string name="field_warn_km">Avisar estos km antes</string>
+    <string name="field_warn_days">Avisar estos días antes</string>
+    <string name="field_task_active">Activa</string>
+    <string name="error_task_name_required">Introduce un nombre de tarea</string>
+    <string name="error_task_interval_required">Introduce al menos un intervalo</string>
+
+    <!-- Resumen de intervalo -->
+    <string name="interval_every_km">cada %1$s km</string>
+    <plurals name="interval_every_months">
+        <item quantity="one">cada mes</item>
+        <item quantity="many">cada %1$s meses</item>
+        <item quantity="other">cada %1$s meses</item>
+    </plurals>
+    <string name="interval_separator">" · "</string>
+
+    <!-- Configuración del plan (tras crear un vehículo) -->
+    <string name="plan_setup_title">Configura el plan de mantenimiento</string>
+    <string name="plan_setup_subtitle">Podrás cambiarlo todo más tarde.</string>
+    <string name="plan_setup_apply_template">Aplicar la plantilla de %1$s</string>
+    <string name="plan_setup_duplicate">Copiar el plan de otro vehículo</string>
+    <string name="plan_setup_pick_source">Copiar el plan de…</string>
+    <string name="plan_setup_empty">Empezar con un plan vacío</string>
+
+    <!-- Estado de tarea (spec 4.3 / 4.4) -->
+    <string name="status_overdue">Vencido</string>
+    <string name="status_upcoming">Próximo</string>
+    <string name="status_ok">Al día</string>
+    <string name="status_no_record">Sin registro previo</string>
+
+    <!-- Resúmenes de margen / exceso -->
+    <string name="remaining_km">faltan %1$s km</string>
+    <string name="overrun_km">%1$s km de más</string>
+    <plurals name="remaining_months">
+        <item quantity="one">falta 1 mes</item>
+        <item quantity="many">faltan %1$s meses</item>
+        <item quantity="other">faltan %1$s meses</item>
+    </plurals>
+    <plurals name="overrun_months">
+        <item quantity="one">1 mes de más</item>
+        <item quantity="many">%1$s meses de más</item>
+        <item quantity="other">%1$s meses de más</item>
+    </plurals>
+    <string name="remaining_separator">" · "</string>
+
+    <!-- Línea única del garaje (P1) -->
+    <string name="garage_line_overdue">Vencido: %1$s</string>
+    <string name="garage_line_next">Próximo: %1$s</string>
+    <string name="garage_line_no_plan">Todavía sin plan de mantenimiento</string>
+
+    <!-- Registrar mantenimiento (P3) -->
+    <string name="log_date">Fecha</string>
+    <string name="log_odometer">Kilometraje (km)</string>
+    <string name="log_tasks_header">Tareas cubiertas</string>
+    <string name="log_select_all_overdue">Seleccionar todas las vencidas</string>
+    <string name="log_free_record_hint">Puedes guardar sin seleccionar ninguna tarea (intervención no planificada).</string>
+    <string name="log_extras_show">Añadir taller, coste, notas</string>
+    <string name="log_extras_hide">Ocultar taller, coste, notas</string>
+    <string name="log_workshop">Taller</string>
+    <string name="log_cost">Coste</string>
+    <string name="log_notes">Notas</string>
+    <string name="log_save">Guardar</string>
+    <string name="log_km_warn_low">Inferior al último valor confirmado (%1$s km).</string>
+    <string name="error_odometer_required">Introduce la lectura del cuentakilómetros</string>
+
+    <!-- Histórico (P5) -->
+    <string name="screen_edit_record">Editar registro</string>
+    <string name="history_empty">Todavía no hay mantenimiento registrado.</string>
+    <string name="history_total_cost">Gasto total</string>
+    <string name="history_last12_cost">Últimos 12 meses</string>
+    <string name="history_filter_all">Todas las tareas</string>
+    <string name="history_unplanned">Intervención no planificada</string>
+    <string name="history_open_attachment">Abrir adjunto</string>
+    <string name="delete_record_confirm_title">¿Borrar este registro?</string>
+    <string name="delete_record_confirm_body">La intervención se elimina y se recalcula el estado de todas las tareas. Esta acción no se puede deshacer.</string>
+
+    <!-- Adjuntos (F4) -->
+    <string name="log_attach">Adjuntar factura (foto o PDF)</string>
+    <string name="log_attachment_attached">Adjunto añadido</string>
+    <string name="log_attachment_remove">Quitar adjunto</string>
+    <string name="log_attachment_export_warning">Los adjuntos son referencias a ficheros de este dispositivo y no se incluyen en la exportación de datos.</string>
+
+    <!-- Ajustes / Datos (P6) -->
+    <string name="settings_section_data">Datos</string>
+    <string name="settings_section_about">Acerca de</string>
+    <string name="settings_export">Exportar datos</string>
+    <string name="settings_export_desc">Guarda todos los vehículos, planes y registros en un fichero JSON.</string>
+    <string name="settings_import">Importar datos</string>
+    <string name="settings_import_desc">Carga vehículos desde un fichero exportado anteriormente.</string>
+    <string name="settings_archived">Vehículos archivados</string>
+    <string name="settings_version">Versión %1$s</string>
+    <string name="export_attachment_warning">Los adjuntos de facturas no se incluyen en el fichero.</string>
+
+    <string name="import_mode_title">¿Cómo quieres importar este fichero?</string>
+    <string name="import_mode_add">Añadir a los datos actuales</string>
+    <string name="import_mode_add_desc">Los vehículos del fichero se añaden como nuevos. No se elimina nada.</string>
+    <string name="import_mode_replace">Reemplazar todo</string>
+    <string name="import_mode_replace_desc">Borra todos los datos actuales y luego importa el fichero.</string>
+    <string name="import_replace_confirm_title">¿Reemplazar todos los datos?</string>
+    <string name="import_replace_confirm_body">Todos los vehículos, planes y registros actuales se borrarán de forma permanente antes de importar el fichero.</string>
+
+    <string name="msg_export_ok">Datos exportados</string>
+    <string name="msg_export_failed">Error al exportar</string>
+    <plurals name="msg_import_ok">
+        <item quantity="one">1 vehículo importado</item>
+        <item quantity="many">%1$s vehículos importados</item>
+        <item quantity="other">%1$s vehículos importados</item>
+    </plurals>
+    <string name="msg_import_failed_malformed">Ese fichero no es una copia válida.</string>
+    <string name="msg_import_failed_version">Ese fichero se creó con una versión más reciente de la app.</string>
+    <string name="msg_import_failed_generic">Error al importar.</string>
+
+    <!-- Notificaciones (F6) -->
+    <string name="settings_section_notifications">Recordatorios</string>
+    <string name="settings_maintenance_alerts">Avisos de mantenimiento</string>
+    <string name="settings_maintenance_alerts_desc">Comprobación diaria; una notificación por vehículo cuando algo vence o está próximo.</string>
+    <string name="settings_odometer_reminder">Recordatorio mensual de kilometraje</string>
+    <string name="settings_odometer_reminder_desc">Un aviso para mantener el kilometraje al día.</string>
+    <string name="notif_permission_denied">Los recordatorios están activados, pero las notificaciones de la app están bloqueadas en los ajustes del sistema.</string>
+
+    <string name="notif_channel_maintenance">Avisos de mantenimiento</string>
+    <string name="notif_channel_maintenance_desc">Cuando un vehículo tiene una tarea vencida o próxima.</string>
+    <string name="notif_channel_odometer">Recordatorio de kilometraje</string>
+    <string name="notif_channel_odometer_desc">Recordatorio mensual para actualizar el kilometraje.</string>
+    <string name="notif_maintenance_summary_title">Mantenimiento pendiente</string>
+    <plurals name="notif_maintenance_body">
+        <item quantity="one">%2$s necesita atención</item>
+        <item quantity="many">%1$d tareas necesitan atención, incluida %2$s</item>
+        <item quantity="other">%1$d tareas necesitan atención, incluida %2$s</item>
+    </plurals>
+    <string name="notif_odometer_title">Actualiza el kilometraje</string>
+    <string name="notif_odometer_body">Abre CarCareo y confirma los km actuales de tus vehículos.</string>
+
+    <string name="placeholder_not_implemented">Aún no implementado</string>
+</resources>
