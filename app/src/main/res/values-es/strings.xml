@@ -56,6 +56,7 @@
 
     <string name="detail_section_plan">Plan de mantenimiento</string>
     <string name="detail_plan_empty">Todavía no hay tareas en el plan.</string>
+    <string name="detail_plan_row_log">Registrar %1$s</string>
     <string name="detail_action_log">Registrar mantenimiento</string>
     <string name="detail_action_edit_plan">Editar plan</string>
     <string name="detail_action_history">Ver histórico</string>
@@ -217,7 +218,7 @@
     <!-- Notificaciones (F6) -->
     <string name="settings_section_notifications">Recordatorios</string>
     <string name="settings_maintenance_alerts">Avisos de mantenimiento</string>
-    <string name="settings_maintenance_alerts_desc">Comprobación diaria; una notificación por vehículo cuando algo vence o está próximo.</string>
+    <string name="settings_maintenance_alerts_desc">Comprobación semanal; una notificación por vehículo cuando algo vence o está próximo.</string>
     <string name="settings_odometer_reminder">Recordatorio mensual de kilometraje</string>
     <string name="settings_odometer_reminder_desc">Un aviso para mantener el kilometraje al día.</string>
     <string name="notif_permission_denied">Los recordatorios están activados, pero las notificaciones de la app están bloqueadas en los ajustes del sistema.</string>

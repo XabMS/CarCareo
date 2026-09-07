@@ -381,7 +381,7 @@ adjuntos con URI persistida (`takePersistableUriPermission`).
 Según el apartado 7, con los tests de round-trip.
 
 ### F6 — Notificaciones *(opcional, solo si F0–F5 están sólidas)*
-`WorkManager` con un chequeo diario. Notificación cuando una tarea entra en `PROXIMO` o `VENCIDO`
+`WorkManager` con un chequeo semanal. Notificación cuando una tarea entra en `PROXIMO` o `VENCIDO`
 (una por vehículo, agrupada, no una por tarea). Recordatorio mensual de "actualiza el kilometraje".
 Todo desactivable en Ajustes.
 

@@ -13,6 +13,7 @@ object Destinations {
 
     const val VEHICLE_ID_ARG = "vehicleId"
     const val RECORD_ID_ARG = "recordId"
+    const val TASK_ID_ARG = "taskId"
 
     private const val VEHICLE_DETAIL_BASE = "vehicle"
     private const val PLAN_EDITOR_BASE = "plan"
@@ -24,7 +25,7 @@ object Destinations {
     const val VEHICLE_DETAIL = "$VEHICLE_DETAIL_BASE/{$VEHICLE_ID_ARG}"
     const val PLAN_EDITOR = "$PLAN_EDITOR_BASE/{$VEHICLE_ID_ARG}"
     const val PLAN_SETUP = "$PLAN_SETUP_BASE/{$VEHICLE_ID_ARG}"
-    const val LOG_MAINTENANCE = "$LOG_MAINTENANCE_BASE/{$VEHICLE_ID_ARG}"
+    const val LOG_MAINTENANCE = "$LOG_MAINTENANCE_BASE/{$VEHICLE_ID_ARG}?$TASK_ID_ARG={$TASK_ID_ARG}"
     const val RECORD_EDIT = "$LOG_MAINTENANCE_BASE/{$VEHICLE_ID_ARG}/{$RECORD_ID_ARG}"
     const val HISTORY = "$HISTORY_BASE/{$VEHICLE_ID_ARG}"
 
@@ -35,7 +36,10 @@ object Destinations {
     fun vehicleDetail(id: Long) = "$VEHICLE_DETAIL_BASE/$id"
     fun planEditor(id: Long) = "$PLAN_EDITOR_BASE/$id"
     fun planSetup(id: Long) = "$PLAN_SETUP_BASE/$id"
-    fun logMaintenance(id: Long) = "$LOG_MAINTENANCE_BASE/$id"
+    /** [taskId] pre-selects a single task (row tap); null leaves the default pre-check. */
+    fun logMaintenance(id: Long, taskId: Long? = null) =
+        if (taskId == null) "$LOG_MAINTENANCE_BASE/$id"
+        else "$LOG_MAINTENANCE_BASE/$id?$TASK_ID_ARG=$taskId"
     fun recordEdit(vehicleId: Long, recordId: Long) = "$LOG_MAINTENANCE_BASE/$vehicleId/$recordId"
     fun history(id: Long) = "$HISTORY_BASE/$id"
     fun vehicleFormEdit(id: Long) = "$VEHICLE_FORM_BASE/$id"

@@ -63,6 +63,7 @@
     <!-- Vehicle detail (P2) -->
     <string name="detail_section_plan">Maintenance plan</string>
     <string name="detail_plan_empty">No tasks in the plan yet.</string>
+    <string name="detail_plan_row_log">Log %1$s</string>
     <string name="detail_action_log">Log maintenance</string>
     <string name="detail_action_edit_plan">Edit plan</string>
     <string name="detail_action_history">View history</string>
@@ -222,7 +223,7 @@
     <!-- Notifications (F6) -->
     <string name="settings_section_notifications">Reminders</string>
     <string name="settings_maintenance_alerts">Maintenance alerts</string>
-    <string name="settings_maintenance_alerts_desc">A daily check; one notification per vehicle when something is due or coming up.</string>
+    <string name="settings_maintenance_alerts_desc">A weekly check; one notification per vehicle when something is due or coming up.</string>
     <string name="settings_odometer_reminder">Monthly odometer reminder</string>
     <string name="settings_odometer_reminder_desc">A nudge to keep your mileage up to date.</string>
     <string name="notif_permission_denied">Reminders are on, but notifications are blocked for this app in system settings.</string>

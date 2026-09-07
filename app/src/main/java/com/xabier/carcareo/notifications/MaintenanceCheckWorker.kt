@@ -12,10 +12,10 @@ import com.xabier.carcareo.domain.VehiclePlanStatus
 import java.time.LocalDate
 
 /**
- * Daily check (spec F6). For every non-archived vehicle whose worst task status is
+ * Weekly check (spec F6). For every non-archived vehicle whose worst task status is
  * UPCOMING or OVERDUE, posts one grouped notification. Per-vehicle dedup avoids a
- * fresh notification every single day for the same situation: it only re-notifies
- * when the status gets worse, or after a week.
+ * repeat notification for an unchanged situation: it only re-notifies when the
+ * status gets worse, or once a week.
  */
 class MaintenanceCheckWorker(
     context: Context,

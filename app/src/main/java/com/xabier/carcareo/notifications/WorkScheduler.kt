@@ -23,7 +23,7 @@ object WorkScheduler {
             wm.enqueueUniquePeriodicWork(
                 WORK_MAINTENANCE,
                 ExistingPeriodicWorkPolicy.UPDATE,
-                PeriodicWorkRequestBuilder<MaintenanceCheckWorker>(1, TimeUnit.DAYS).build(),
+                PeriodicWorkRequestBuilder<MaintenanceCheckWorker>(7, TimeUnit.DAYS).build(),
             )
         } else {
             wm.cancelUniqueWork(WORK_MAINTENANCE)

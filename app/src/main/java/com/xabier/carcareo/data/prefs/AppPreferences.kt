@@ -43,7 +43,7 @@ class AppPreferences(context: Context) {
         odometerReminderEnabled = odometerReminderEnabled,
     )
 
-    // --- per-vehicle dedup for maintenance alerts (avoid daily repeats) ---
+    // --- per-vehicle dedup for maintenance alerts (avoid repeat alerts) ---
 
     fun lastAlert(vehicleId: Long): AlertMemory = AlertMemory(
         epochDay = prefs.getLong(alertDayKey(vehicleId), Long.MIN_VALUE),

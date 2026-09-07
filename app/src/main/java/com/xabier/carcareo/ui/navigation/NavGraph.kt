@@ -48,7 +48,9 @@ fun CarCareoNavGraph(
                 onBack = navController::popBackStack,
                 onEditVehicle = { navController.navigate(Destinations.vehicleFormEdit(it)) },
                 onEditPlan = { navController.navigate(Destinations.planEditor(it)) },
-                onLogMaintenance = { navController.navigate(Destinations.logMaintenance(it)) },
+                onLogMaintenance = { vId, taskId ->
+                    navController.navigate(Destinations.logMaintenance(vId, taskId))
+                },
                 onViewHistory = { navController.navigate(Destinations.history(it)) },
             )
         }
@@ -90,7 +92,13 @@ fun CarCareoNavGraph(
             )
         }
 
-        composable(Destinations.LOG_MAINTENANCE, arguments = vehicleIdArg) { entry ->
+        composable(
+            Destinations.LOG_MAINTENANCE,
+            arguments = vehicleIdArg + navArgument(Destinations.TASK_ID_ARG) {
+                type = NavType.LongType
+                defaultValue = -1L
+            },
+        ) { entry ->
             LogMaintenanceScreen(
                 vehicleId = entry.vehicleId(),
                 onBack = navController::popBackStack,

@@ -56,6 +56,11 @@ class LogMaintenanceViewModel(
     private val recordId: Long? = savedStateHandle.get<Long>(Destinations.RECORD_ID_ARG)
         ?.takeIf { it > 0 }
 
+    // Optional: a single task to pre-select, set when the user taps one plan row
+    // instead of the "Log maintenance" button (log/{vehicleId}?taskId={taskId}).
+    private val presetTaskId: Long? = savedStateHandle.get<Long>(Destinations.TASK_ID_ARG)
+        ?.takeIf { it > 0 }
+
     private val today: LocalDate = LocalDate.now()
 
     private val _ui = MutableStateFlow(LogMaintenanceUiState())
@@ -101,17 +106,25 @@ class LogMaintenanceViewModel(
                     )
                 }
             } else {
+                // A row tap pre-selects just that task; otherwise pre-mark
+                // everything overdue or upcoming (spec P3).
+                val preselected = if (presetTaskId != null &&
+                    activeRows.any { r -> r.taskId == presetTaskId }
+                ) {
+                    setOf(presetTaskId)
+                } else {
+                    activeRows
+                        .filter { r -> r.computation?.status != TaskStatus.OK }
+                        .map { r -> r.taskId }
+                        .toSet()
+                }
                 _ui.update {
                     it.copy(
                         loading = false,
                         odometer = status.currentKm.toString(),
                         lastConfirmedKm = vehicle.lastConfirmedKm,
                         tasks = activeRows,
-                        // Pre-mark everything overdue or upcoming (spec P3).
-                        selectedTaskIds = activeRows
-                            .filter { r -> r.computation?.status != TaskStatus.OK }
-                            .map { r -> r.taskId }
-                            .toSet(),
+                        selectedTaskIds = preselected,
                     )
                 }
             }

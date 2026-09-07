@@ -1,6 +1,7 @@
 package com.xabier.carcareo.ui.screen
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +21,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
@@ -82,7 +84,7 @@ fun VehicleDetailScreen(
     onBack: () -> Unit,
     onEditVehicle: (Long) -> Unit,
     onEditPlan: (Long) -> Unit,
-    onLogMaintenance: (Long) -> Unit,
+    onLogMaintenance: (vehicleId: Long, taskId: Long?) -> Unit,
     onViewHistory: (Long) -> Unit,
     viewModel: VehicleDetailViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
@@ -159,9 +161,12 @@ fun VehicleDetailScreen(
                 odometer = odometer,
                 onUpdateClick = { showUpdateKm = true },
             )
-            PlanSection(planStatus = state.planStatus)
+            PlanSection(
+                planStatus = state.planStatus,
+                onLogTask = { taskId -> onLogMaintenance(vehicle.id, taskId) },
+            )
             DetailActions(
-                onLog = { onLogMaintenance(vehicle.id) },
+                onLog = { onLogMaintenance(vehicle.id, null) },
                 onEditPlan = { onEditPlan(vehicle.id) },
                 onHistory = { onViewHistory(vehicle.id) },
             )
@@ -249,7 +254,10 @@ private fun OdometerCard(odometer: OdometerReading, onUpdateClick: () -> Unit) {
 }
 
 @Composable
-private fun PlanSection(planStatus: com.xabier.carcareo.domain.VehiclePlanStatus?) {
+private fun PlanSection(
+    planStatus: com.xabier.carcareo.domain.VehiclePlanStatus?,
+    onLogTask: (Long) -> Unit,
+) {
     Column {
         Text(
             stringResource(R.string.detail_section_plan),
@@ -269,9 +277,22 @@ private fun PlanSection(planStatus: com.xabier.carcareo.domain.VehiclePlanStatus
             return@Column
         }
 
-        // Active tasks, most urgent first (spec P2 / 4.3).
+        // Active tasks, most urgent first (spec P2 / 4.3). Tapping a row logs just
+        // that task; the "Log maintenance" button below covers multi-task work.
         active.forEach { tws ->
-            Row(Modifier.padding(vertical = 6.dp), verticalAlignment = Alignment.Top) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable(
+                        onClickLabel = stringResource(
+                            R.string.detail_plan_row_log,
+                            tws.task.name,
+                        ),
+                    ) { onLogTask(tws.task.id) }
+                    .padding(vertical = 6.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
                 Box(
                     Modifier
                         .padding(top = 6.dp)
@@ -292,6 +313,14 @@ private fun PlanSection(planStatus: com.xabier.carcareo.domain.VehiclePlanStatus
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .align(Alignment.CenterVertically)
+                        .padding(start = 4.dp),
+                )
             }
         }
 
