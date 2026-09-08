@@ -57,7 +57,7 @@ object Notifications {
     fun postMaintenanceAlert(context: Context, vehicleId: Long, vehicleName: String, line: String) {
         val nm = NotificationManagerCompat.from(context)
         val perVehicle = NotificationCompat.Builder(context, CHANNEL_MAINTENANCE)
-            .setSmallIcon(R.drawable.ic_stat_maintenance)
+            .setSmallIcon(R.drawable.ic_logo_mono)
             .setContentTitle(vehicleName)
             .setContentText(line)
             .setStyle(NotificationCompat.BigTextStyle().bigText(line))
@@ -66,7 +66,7 @@ object Notifications {
             .setAutoCancel(true)
             .build()
         val summary = NotificationCompat.Builder(context, CHANNEL_MAINTENANCE)
-            .setSmallIcon(R.drawable.ic_stat_maintenance)
+            .setSmallIcon(R.drawable.ic_logo_mono)
             .setContentTitle(context.getString(R.string.notif_maintenance_summary_title))
             .setGroup(GROUP_MAINTENANCE)
             .setGroupSummary(true)
@@ -83,7 +83,7 @@ object Notifications {
 
     fun postOdometerReminder(context: Context) {
         val notification = NotificationCompat.Builder(context, CHANNEL_ODOMETER)
-            .setSmallIcon(R.drawable.ic_stat_maintenance)
+            .setSmallIcon(R.drawable.ic_logo_mono)
             .setContentTitle(context.getString(R.string.notif_odometer_title))
             .setContentText(context.getString(R.string.notif_odometer_body))
             .setContentIntent(contentIntent(context))

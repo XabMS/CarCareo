@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- CarCareo mark. Full colour, for in-app use (headers, about screen, empty states). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path android:pathData="M5.5,14 H42.5 A1.5,1.5 0 0 1 42.5,17 H5.5 A1.5,1.5 0 0 1 5.5,14 Z" android:fillColor="#DED5C4"/>
+    <path android:pathData="M5.5,14 H16.5 A1.5,1.5 0 0 1 16.5,17 H5.5 A1.5,1.5 0 0 1 5.5,14 Z" android:fillColor="#17140F"/>
+    <path android:pathData="M19.5,7.5 V23.5 A1.5,1.5 0 0 1 16.5,23.5 V7.5 A1.5,1.5 0 0 1 19.5,7.5 Z" android:fillColor="#17140F"/>
+    <path android:pathData="M12.5,15.5 A5.5,5.5 0 1 1 23.5,15.5 A5.5,5.5 0 1 1 12.5,15.5 Z" android:fillColor="#F6F1E7"/>
+    <path android:pathData="M14,15.5 A4,4 0 1 1 22,15.5 A4,4 0 1 1 14,15.5 Z" android:fillColor="#A32A1E"/>
+    <path android:pathData="M5.5,31 H8.5 A1.5,1.5 0 0 1 8.5,34 H5.5 A1.5,1.5 0 0 1 5.5,31 Z" android:fillColor="#17140F"/>
+    <path android:pathData="M15.5,31 H26.5 A1.5,1.5 0 0 1 26.5,34 H15.5 A1.5,1.5 0 0 1 15.5,31 Z" android:fillColor="#17140F"/>
+    <path android:pathData="M33.5,31 H42.5 A1.5,1.5 0 0 1 42.5,34 H33.5 A1.5,1.5 0 0 1 33.5,31 Z" android:fillColor="#DED5C4"/>
+    <path android:pathData="M5.5,39 H26.5 A1.5,1.5 0 0 1 26.5,42 H5.5 A1.5,1.5 0 0 1 5.5,39 Z" android:fillColor="#17140F"/>
+    <path android:pathData="M33.5,39 H36.5 A1.5,1.5 0 0 1 36.5,42 H33.5 A1.5,1.5 0 0 1 33.5,39 Z" android:fillColor="#DED5C4"/>
+</vector>
