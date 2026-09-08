@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -125,7 +124,6 @@ fun PlanTab(
                     .fillMaxSize()
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp)
-                    .navigationBarsPadding()
                     .padding(top = 4.dp, bottom = 96.dp),
             ) {
                 SectionLabelRow(stringResource(R.string.plan_order_label))
@@ -183,7 +181,6 @@ fun PlanTab(
             onClick = { editingDraft = TaskDraft() },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .navigationBarsPadding()
                 .padding(20.dp),
         )
     }

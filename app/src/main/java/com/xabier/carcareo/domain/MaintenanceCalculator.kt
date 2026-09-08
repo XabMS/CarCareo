@@ -162,6 +162,9 @@ object MaintenanceCalculator {
             .map { compute(it, baseline, currentKm, today, flagNoHistory) }
             .sortedBy { it.urgency }
 
+    // NB: PlanStatusCalculator.forVehicle does its own map+compute+sort rather
+    // than calling computePlan, but both must stay in sync on flagNoHistory.
+
     /** Vehicle status = the worst state among the given (active) task states, or null. */
     fun worstStatus(statuses: Iterable<TaskStatus>): TaskStatus? =
         statuses.minByOrNull {

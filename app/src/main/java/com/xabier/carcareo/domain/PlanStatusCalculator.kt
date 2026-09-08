@@ -28,10 +28,15 @@ data class VehiclePlanStatus(
 object PlanStatusCalculator {
 
     /**
-     * Above this baseline odometer we assume the vehicle was added second-hand,
-     * so a task with no records is treated as "needs review" rather than OK
-     * (its interval can't honestly be counted from the moment you got the car).
-     * A vehicle owned from new sits near 0 km at its baseline and is unaffected.
+     * When the baseline odometer is above this, a task with no records is treated
+     * as "needs review" (amber) rather than OK: with the car already well used and
+     * nothing logged, we genuinely don't know when the task was last done, so we
+     * can't honestly count its interval from the baseline.
+     *
+     * This flags any vehicle first seen well above 0 km with no history — whether
+     * bought used, or owned from new but only added to the app later. Only a
+     * vehicle entered near delivery mileage stays green with no records. The user
+     * clears the flag by logging past work (or deactivating the task).
      */
     const val USED_VEHICLE_KM_THRESHOLD = 1_000
 

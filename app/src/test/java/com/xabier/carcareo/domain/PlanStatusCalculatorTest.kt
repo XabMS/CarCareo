@@ -117,11 +117,12 @@ class PlanStatusCalculatorTest {
         assertEquals(TaskStatus.UPCOMING, status.vehicleStatus)
     }
 
-    // A vehicle owned from new (baseline near 0) keeps the spec 4.2 behaviour.
+    // A vehicle entered near delivery mileage (no purchase date given, so the
+    // baseline date falls back to lastConfirmedKmDate and the baseline km is just
+    // lastConfirmedKm) keeps the spec 4.2 behaviour: no records -> OK.
     @Test
-    fun `new vehicle leaves unrecorded tasks as OK`() {
-        val v = vehicle(lastKm = 400, lastDate = today, annual = 12_000,
-            purchaseDate = today.minusMonths(1))
+    fun `vehicle entered near delivery mileage leaves unrecorded tasks as OK`() {
+        val v = vehicle(lastKm = 400, lastDate = today, annual = 12_000)
         val status = PlanStatusCalculator.forVehicle(
             vehicle = v,
             tasks = listOf(task(1, km = 15_000, months = 12)),
@@ -129,6 +130,21 @@ class PlanStatusCalculatorTest {
             today = today,
         )
         assertEquals(TaskStatus.OK, status.activeOrdered.single().computation.status)
+    }
+
+    // The flag keys off the baseline odometer, not off whether a purchase date
+    // was entered: a car first added at high mileage with no history is amber
+    // even without a purchase date.
+    @Test
+    fun `high-mileage vehicle with no purchase date still flags unrecorded tasks`() {
+        val v = vehicle(lastKm = 90_000, lastDate = today, annual = 12_000)
+        val status = PlanStatusCalculator.forVehicle(
+            vehicle = v,
+            tasks = listOf(task(1, km = 15_000, months = 12)),
+            records = emptyList(),
+            today = today,
+        )
+        assertEquals(TaskStatus.UPCOMING, status.activeOrdered.single().computation.status)
     }
 
     @Test
