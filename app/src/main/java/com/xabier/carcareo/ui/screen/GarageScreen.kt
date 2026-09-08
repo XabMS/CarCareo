@@ -39,7 +39,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,7 +54,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xabier.carcareo.R
 import com.xabier.carcareo.ui.AppViewModelProvider
-import com.xabier.carcareo.ui.component.HairlineDivider
 import com.xabier.carcareo.ui.component.LedgerCard
 import com.xabier.carcareo.ui.component.LedgerIconButton
 import com.xabier.carcareo.ui.component.SectionLabelRow
