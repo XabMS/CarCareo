@@ -68,11 +68,26 @@ object MaintenanceCalculator {
 
     private const val DAYS_PER_MONTH = 30.436875
 
+    /**
+     * Urgency ceiling given to a task with no history when [flagNoHistory] is set
+     * (a second-hand vehicle): we can't trust that it was serviced at the
+     * baseline, so it must surface near the top of the plan, not sink to the
+     * bottom on a full-interval margin it hasn't really got.
+     */
+    private const val NO_HISTORY_URGENCY = 0.15
+
     fun compute(
         input: TaskInput,
         baseline: BaselineRef,
         currentKm: Int,
         today: LocalDate,
+        /**
+         * When true and the task has no history, don't report it as OK: the
+         * vehicle was added second-hand, so an unrecorded task is unknown, not
+         * fine. It becomes UPCOMING (amber) until the user logs the last service
+         * or deactivates it. See spec 4.2 and PlanStatusCalculator.
+         */
+        flagNoHistory: Boolean = false,
     ): TaskComputation {
         val hasHistory = input.lastDone != null
         val fromDate = input.lastDone?.date ?: baseline.date
@@ -108,13 +123,18 @@ object MaintenanceCalculator {
         val upcoming = (kmRemaining != null && kmRemaining <= input.warnKmBefore) ||
             (daysRemaining != null && daysRemaining <= input.warnDaysBefore)
 
+        val noHistoryNeedsReview = flagNoHistory && !hasHistory
+
         val status = when {
             overdue -> TaskStatus.OVERDUE
-            upcoming -> TaskStatus.UPCOMING
+            upcoming || noHistoryNeedsReview -> TaskStatus.UPCOMING
             else -> TaskStatus.OK
         }
 
-        val urgency = listOfNotNull(kmRatio, timeRatio).minOrNull() ?: Double.MAX_VALUE
+        val rawUrgency = listOfNotNull(kmRatio, timeRatio).minOrNull() ?: Double.MAX_VALUE
+        val urgency =
+            if (noHistoryNeedsReview && status != TaskStatus.OVERDUE) minOf(rawUrgency, NO_HISTORY_URGENCY)
+            else rawUrgency
 
         return TaskComputation(
             taskId = input.taskId,
@@ -136,9 +156,10 @@ object MaintenanceCalculator {
         baseline: BaselineRef,
         currentKm: Int,
         today: LocalDate,
+        flagNoHistory: Boolean = false,
     ): List<TaskComputation> =
         inputs
-            .map { compute(it, baseline, currentKm, today) }
+            .map { compute(it, baseline, currentKm, today, flagNoHistory) }
             .sortedBy { it.urgency }
 
     /** Vehicle status = the worst state among the given (active) task states, or null. */

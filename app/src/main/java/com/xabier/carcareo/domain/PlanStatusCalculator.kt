@@ -27,6 +27,14 @@ data class VehiclePlanStatus(
  */
 object PlanStatusCalculator {
 
+    /**
+     * Above this baseline odometer we assume the vehicle was added second-hand,
+     * so a task with no records is treated as "needs review" rather than OK
+     * (its interval can't honestly be counted from the moment you got the car).
+     * A vehicle owned from new sits near 0 km at its baseline and is unaffected.
+     */
+    const val USED_VEHICLE_KM_THRESHOLD = 1_000
+
     fun forVehicle(
         vehicle: Vehicle,
         tasks: List<MaintenanceTask>,
@@ -35,6 +43,7 @@ object PlanStatusCalculator {
     ): VehiclePlanStatus {
         val reading = vehicle.odometerReading(today)
         val baseline = baselineFor(vehicle)
+        val flagNoHistory = baseline.km > USED_VEHICLE_KM_THRESHOLD
         val lastDoneByTask = mostRecentExecutionByTask(records)
 
         val (active, inactive) = tasks.partition { it.active }
@@ -48,7 +57,7 @@ object PlanStatusCalculator {
                 warnDaysBefore = task.warnDaysBefore,
                 lastDone = lastDoneByTask[task.id],
             )
-            TaskWithStatus(task, MaintenanceCalculator.compute(input, baseline, reading.km, today))
+            TaskWithStatus(task, MaintenanceCalculator.compute(input, baseline, reading.km, today, flagNoHistory))
         }.sortedBy { it.computation.urgency }
 
         return VehiclePlanStatus(

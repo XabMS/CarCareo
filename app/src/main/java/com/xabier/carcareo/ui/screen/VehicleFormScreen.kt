@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,6 +49,8 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -233,7 +237,12 @@ fun VehicleFormScreen(
                     .background(MaterialTheme.colorScheme.surfaceContainerLowest),
             ) {
                 HairlineDivider(Modifier.background(MaterialTheme.colorScheme.outline))
-                Box(Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+                Box(
+                    Modifier
+                        .padding(horizontal = 20.dp, vertical = 12.dp)
+                        .imePadding()
+                        .navigationBarsPadding(),
+                ) {
                     LedgerPrimaryButton(
                         text = stringResource(
                             if (state.isEdit) R.string.action_save else R.string.form_save_setup,
@@ -274,9 +283,13 @@ private fun CategoryTiles(
                 Spacer(Modifier.height(6.dp))
                 Text(
                     stringResource(category.shortLabelRes).upcase(),
+                    Modifier.fillMaxWidth(),
                     style = LedgerText.tag,
                     color = content,
-                    maxLines = 1,
+                    textAlign = TextAlign.Center,
+                    minLines = 2,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
         }

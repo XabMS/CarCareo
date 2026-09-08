@@ -100,6 +100,37 @@ class PlanStatusCalculatorTest {
         assertEquals(Execution(today.minusMonths(1), 25_400), byTask[1])
     }
 
+    // A second-hand vehicle (high baseline km, no records) must not report its
+    // unrecorded tasks as OK — they need review until the user logs or disables them.
+    @Test
+    fun `used vehicle flags unrecorded tasks as needing attention`() {
+        val v = vehicle(lastKm = 233_000, lastDate = today, annual = 12_000)
+        val status = PlanStatusCalculator.forVehicle(
+            vehicle = v,
+            tasks = listOf(task(1, km = 120_000, months = 84)),
+            records = emptyList(),
+            today = today,
+        )
+        val comp = status.activeOrdered.single().computation
+        assertFalse(comp.hasHistory)
+        assertEquals(TaskStatus.UPCOMING, comp.status)
+        assertEquals(TaskStatus.UPCOMING, status.vehicleStatus)
+    }
+
+    // A vehicle owned from new (baseline near 0) keeps the spec 4.2 behaviour.
+    @Test
+    fun `new vehicle leaves unrecorded tasks as OK`() {
+        val v = vehicle(lastKm = 400, lastDate = today, annual = 12_000,
+            purchaseDate = today.minusMonths(1))
+        val status = PlanStatusCalculator.forVehicle(
+            vehicle = v,
+            tasks = listOf(task(1, km = 15_000, months = 12)),
+            records = emptyList(),
+            today = today,
+        )
+        assertEquals(TaskStatus.OK, status.activeOrdered.single().computation.status)
+    }
+
     @Test
     fun `vehicle status is the worst among active tasks and ignores inactive ones`() {
         val v = vehicle(lastKm = 50_000, lastDate = today, annual = 10_000)
