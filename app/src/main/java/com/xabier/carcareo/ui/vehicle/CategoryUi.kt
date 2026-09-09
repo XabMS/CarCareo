@@ -2,9 +2,9 @@ package com.xabier.carcareo.ui.vehicle
 
 import androidx.annotation.StringRes
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DirectionsCar
-import androidx.compose.material.icons.filled.ElectricCar
-import androidx.compose.material.icons.filled.TwoWheeler
+import com.xabier.carcareo.ui.icon.DirectionsCar
+import com.xabier.carcareo.ui.icon.ElectricCar
+import com.xabier.carcareo.ui.icon.TwoWheeler
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.xabier.carcareo.R
 import com.xabier.carcareo.data.entity.VehicleCategory

@@ -24,8 +24,8 @@ android {
         applicationId = "com.xabier.carcareo"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
@@ -44,7 +44,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             // Falls back to unsigned if local.properties has no keystore; the
             // release APK then won't install (see CARCAREO_* keys in local.properties).
             signingConfig = if (hasReleaseSigning) {
@@ -111,7 +112,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.compose.material.icons.extended)
+    // Just the ~40-icon core set. The ~5 000-icon material-icons-extended is not
+    // used — the handful of non-core glyphs we need are vendored in
+    // ui/icon/MaterialIconsSubset.kt.
+    implementation(libs.androidx.compose.material.icons.core)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
