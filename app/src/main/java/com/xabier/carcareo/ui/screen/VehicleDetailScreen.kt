@@ -203,6 +203,7 @@ private fun OdometerBlock(km: Int, freshness: String, onUpdate: () -> Unit) {
             LedgerSecondaryButton(
                 text = stringResource(R.string.action_update),
                 onClick = onUpdate,
+                modifier = Modifier.align(Alignment.CenterVertically),
             )
         }
     }
