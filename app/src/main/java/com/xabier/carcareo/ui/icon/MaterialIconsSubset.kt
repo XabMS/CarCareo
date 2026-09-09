@@ -1,3 +1,9 @@
+// Vendored icon accessors follow androidx material-icons' generated pattern:
+// an `Icons.Filled.*` extension property whose getter ignores the receiver (it
+// only scopes the call syntax) backed by a top-level `_name` field. Both are
+// deliberate here, so silence the IDE inspections that flag the upstream shape.
+@file:Suppress("UnusedReceiverParameter", "ObjectPropertyName")
+
 package com.xabier.carcareo.ui.icon
 
 import androidx.compose.material.icons.Icons
