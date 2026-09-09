@@ -16,9 +16,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Checklist
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.History
+import com.xabier.carcareo.ui.icon.Checklist
+import com.xabier.carcareo.ui.icon.Dashboard
+import com.xabier.carcareo.ui.icon.History
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.DropdownMenu

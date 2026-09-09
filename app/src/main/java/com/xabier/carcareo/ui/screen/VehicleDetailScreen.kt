@@ -4,7 +4,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -217,7 +216,6 @@ private fun RoadAheadCard(timeline: PlanTimeline) {
     val ink = MaterialTheme.extraColors.ink
     val onVar = MaterialTheme.colorScheme.onSurfaceVariant
     val bodyOnCard = MaterialTheme.extraColors.bodyOnCard
-    val hasPinned = timeline.markers.any { it.pinnedLeft }
     val dotColors: List<Pair<Float, Color>> = timeline.markers.map { m ->
         (m.kmFromNow.toFloat() / timeline.windowKm).coerceIn(0f, 1f) to m.status.color()
     }
