@@ -292,7 +292,9 @@ fun SettingsScreen(
     }
         androidx.compose.material3.SnackbarHost(
             snackbar,
-            Modifier.align(Alignment.BottomCenter),
+            Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding(),
         )
     }
 

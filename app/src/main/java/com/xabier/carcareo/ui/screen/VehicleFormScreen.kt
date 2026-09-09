@@ -48,6 +48,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -132,7 +133,7 @@ fun VehicleFormScreen(
             ) {
                 CategoryTiles(
                     selected = state.category,
-                    onSelected = { c -> viewModel.edit { it.copy(category = c) } },
+                    onSelected = viewModel::setCategory,
                 )
 
                 LabeledField(
@@ -142,6 +143,7 @@ fun VehicleFormScreen(
                     isError = state.nameError,
                     errorText = stringResource(R.string.error_name_required),
                     primary = true,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
                 )
 
                 Column {
@@ -208,9 +210,10 @@ fun VehicleFormScreen(
                         FormTextRow(
                             label = stringResource(R.string.form_row_per_year),
                             value = state.annualKmEstimate,
-                            onValueChange = { v -> viewModel.edit { it.copy(annualKmEstimate = v.filter(Char::isDigit)) } },
+                            onValueChange = viewModel::setAnnualKm,
                             mono = true,
                             keyboardType = KeyboardType.Number,
+                            imeAction = ImeAction.Done,
                             suffix = stringResource(R.string.unit_km),
                         )
                     }
@@ -255,7 +258,13 @@ fun VehicleFormScreen(
             }
         }
 
-        SnackbarHost(snackbar, Modifier.align(Alignment.BottomCenter))
+        SnackbarHost(
+            snackbar,
+            Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .imePadding(),
+        )
     }
 }
 
@@ -310,6 +319,7 @@ private fun FormTextRow(
     onValueChange: (String) -> Unit,
     mono: Boolean = false,
     keyboardType: KeyboardType = KeyboardType.Text,
+    imeAction: ImeAction = ImeAction.Next,
     suffix: String? = null,
     isError: Boolean = false,
 ) {
@@ -329,7 +339,7 @@ private fun FormTextRow(
             value = value,
             onValueChange = onValueChange,
             singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
+            keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
             textStyle = (if (mono) LedgerText.rowMeta.copy(fontSize = LedgerText.rowTitle.fontSize) else LedgerText.rowTitle)
                 .merge(TextStyle(color = onSurface)),
             cursorBrush = SolidColor(MaterialTheme.extraColors.ink),

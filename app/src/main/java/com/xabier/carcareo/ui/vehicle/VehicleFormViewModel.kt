@@ -29,7 +29,9 @@ data class VehicleFormState(
     val plate: String = "",
     val lastConfirmedKm: String = "",
     val lastConfirmedKmDate: LocalDate = LocalDate.now(),
-    val annualKmEstimate: String = DEFAULT_ANNUAL_KM.toString(),
+    val annualKmEstimate: String = defaultAnnualKm(VehicleCategory.MOTO_TERMICA).toString(),
+    /** True once the user types in the km/year field, so a category switch stops overwriting it. */
+    val annualKmEdited: Boolean = false,
     val purchaseDate: LocalDate? = null,
     val notes: String = "",
     /** Not user-editable here; carried so an edit-save doesn't un-archive. */
@@ -43,7 +45,11 @@ data class VehicleFormState(
     val isEdit: Boolean get() = id != null
 
     companion object {
-        const val DEFAULT_ANNUAL_KM = 12_000
+        /** Default yearly mileage estimate, by vehicle type. */
+        fun defaultAnnualKm(category: VehicleCategory): Int = when (category) {
+            VehicleCategory.MOTO_TERMICA -> 8_000
+            VehicleCategory.COCHE_TERMICO, VehicleCategory.COCHE_ELECTRICO -> 10_000
+        }
     }
 }
 
@@ -73,6 +79,7 @@ class VehicleFormViewModel(
                         lastConfirmedKm = v.lastConfirmedKm.toString(),
                         lastConfirmedKmDate = v.lastConfirmedKmDate,
                         annualKmEstimate = v.annualKmEstimate.toString(),
+                        annualKmEdited = true,
                         purchaseDate = v.purchaseDate,
                         notes = v.notes.orEmpty(),
                         archived = v.archived,
@@ -87,6 +94,21 @@ class VehicleFormViewModel(
 
     fun edit(transform: (VehicleFormState) -> VehicleFormState) {
         _state.update(transform)
+    }
+
+    /** Switches vehicle type, keeping the km/year default in sync unless the user set it. */
+    fun setCategory(category: VehicleCategory) {
+        _state.update { s ->
+            s.copy(
+                category = category,
+                annualKmEstimate = if (s.annualKmEdited) s.annualKmEstimate
+                else VehicleFormState.defaultAnnualKm(category).toString(),
+            )
+        }
+    }
+
+    fun setAnnualKm(text: String) {
+        _state.update { it.copy(annualKmEstimate = text.filter(Char::isDigit), annualKmEdited = true) }
     }
 
     /**
@@ -117,7 +139,7 @@ class VehicleFormViewModel(
             lastConfirmedKmDate = s.lastConfirmedKmDate,
             annualKmEstimate = s.annualKmEstimate.trim().toIntOrNull()
                 ?.takeIf { it > 0 }
-                ?: VehicleFormState.DEFAULT_ANNUAL_KM,
+                ?: VehicleFormState.defaultAnnualKm(s.category),
             purchaseDate = s.purchaseDate,
             notes = s.notes.trim().ifBlank { null },
             archived = s.archived,
