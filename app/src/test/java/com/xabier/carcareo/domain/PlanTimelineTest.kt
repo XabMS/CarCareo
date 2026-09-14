@@ -55,6 +55,23 @@ class PlanTimelineTest {
     }
 
     @Test
+    fun `window is capped at 60k even when a task is much further out`() {
+        val near = task(1, km = 8_000)    // done @50k -> 6k left
+        val mid = task(2, km = 62_000)    // done @50k -> 60k left, right at the cap
+        val far = task(3, km = 90_000)    // done @50k -> 88k left, beyond the cap
+        val recs = listOf(
+            record(today.minusMonths(1), 50_000, listOf(near)),
+            record(today.minusMonths(1), 50_000, listOf(mid)),
+            record(today.minusMonths(1), 50_000, listOf(far)),
+        )
+        val t = buildPlanTimeline(status(listOf(near, mid, far), recs), annualKmEstimate = 10_000)
+
+        assertEquals(PlanTimeline.MAX_WINDOW_KM, t.windowKm)
+        assertEquals(setOf(6_000, 60_000), t.markers.map { it.kmFromNow }.toSet())
+        assertTrue(t.later.any { it.task.id == far.id })
+    }
+
+    @Test
     fun `all-overdue tasks collapse to one pinned marker`() {
         val a = task(1, km = 1_000)    // done @49k -> 2k over
         val b = task(2, km = 500)      // done @50k -> 1.5k over

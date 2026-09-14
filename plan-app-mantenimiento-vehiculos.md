@@ -169,6 +169,11 @@ Del conjunto de registros ligados a esa tarea, el de **fecha más reciente**. Gu
 `sinHistórico = true` y muéstrala en la UI como "Sin registro previo" en vez de dar una fecha de
 vencimiento falsa con aire de certeza.
 
+> **Desviación implementada** (ver apartado 12.2): si el vehículo ya tenía un km alto al darlo de
+> alta (comprado de segunda mano) y una tarea no tiene histórico, se muestra como "necesita
+> atención" (`PROXIMO`) en vez de neutral — un km inicial alto y ninguna tarea registrada no es
+> "recién hecho", es simplemente que no lo sabemos.
+
 ### 4.3 Estado
 
 Para cada dimensión informada se calcula el margen restante:
@@ -212,6 +217,11 @@ FAB: añadir vehículo. Overflow: importar/exportar datos, ver archivados.
 - Lista de tareas ordenada por urgencia. Cada línea: nombre, margen en **ambas unidades**
   ("faltan 1.200 km · 4 meses"), color de estado.
 - Acciones: **Registrar mantenimiento** (destacada), Editar plan, Ver histórico, Editar vehículo.
+
+> **Añadido durante el rediseño, no estaba en el texto original** (ver apartado 12.1 y 12.3):
+> encima de la lista de tareas hay un boceto de eje de km ("road ahead") con las próximas tareas
+> como puntos sobre una línea temporal; ventana mínima 12.000 km, techo 60.000 km. Además, P2/P4/P5
+> viven hoy como pestañas de una misma pantalla de vehículo, no como tres pantallas separadas.
 
 ### P3 — Registrar mantenimiento
 
@@ -441,3 +451,50 @@ No implementes nada de esto aunque parezca fácil o útil:
 - Los textos de UI van en `strings.xml` (inglés) y `values-es/strings.xml` (español) desde F0.
   Nada de literales en el código, en ninguna fase.
 - Fechas con `java.time` (`LocalDate`), con desugaring si hace falta para minSdk 26.
+
+---
+
+## 12. Estado actual y desviaciones documentadas (actualización 2026-09-14)
+
+Este documento describe el diseño previsto. Este apartado registra lo que realmente se ha
+construido y en qué puntos concretos se ha desviado del texto anterior — sin tocar el apartado 2,
+que sigue siendo la referencia cerrada de comportamiento.
+
+### 12.1 Estado
+
+Fases F0–F7 completadas. Después del build inicial hubo un rediseño visual y de navegación
+("Workshop ledger": fondo tipo papel, reglas finas, tipografía mono para cifras, estado como franja
+de color) que fusionó P2, P4 y P5 en una sola pantalla de vehículo con pestañas (Resumen / Plan /
+Histórico) en vez de tres pantallas independientes. El resto de pantallas (P1, P3, P6) siguen
+siendo pantallas propias.
+
+### 12.2 Desviación del apartado 4.2 — vehículos de segunda mano sin histórico
+
+Tomar el apartado 4.2 al pie de la letra en un vehículo comprado con km alto (p. ej. 233.000 km)
+hacía que una tarea nunca registrada (una correa de distribución, por ejemplo) apareciese como si
+estuviera al día, cuando en realidad no hay ningún dato que lo respalde. Implementado así: si
+`lastConfirmedKm` del vehículo ya era alto en el momento de la baja del vehículo (dado de alta con
+km inicial elevado) y una tarea no tiene ningún registro, se marca como "necesita atención"
+(`PROXIMO`) en la UI en vez de mostrarla como vigente o neutral.
+
+### 12.3 Timeline "road ahead" — no descrita en el diseño original
+
+Añadida durante el rediseño visual, encima de la lista de tareas de P2 (ver nota en esa sección):
+un boceto del eje de km con las próximas tareas como puntos. Reglas: ventana mínima 12.000 km;
+techo de 60.000 km (una tarea con un intervalo muy largo, p. ej. una revisión a 200.000+ km, ya no
+estira el eje y deja el resto de tareas ilegibles — esa tarea simplemente no aparece como punto,
+pero sigue apareciendo en el bloque de texto "próximamente"); máximo 3 marcadores futuros,
+espaciados al menos un 18% de la ventana entre sí para evitar solapes.
+
+### 12.4 Migración de Room — ya no es una carencia
+
+El primer cambio de esquema (v1 → v2) ya se ha hecho: añade un índice único `(vehicleId, name)` en
+`MaintenanceTask` y viene con su propia `Migration` y un `MigrationTest` instrumentado. Cualquier
+cambio de esquema futuro debe seguir el mismo patrón: `Migration` + test, nunca `fallbackToDestructiveMigration`.
+
+### 12.5 Endurecimiento adicional no exigido explícitamente por este documento
+
+CI en GitHub Actions ejecutando tests unitarios y lint en cada push/PR; cobertura con Robolectric
+de ViewModels y repositorios (más allá de los tests obligatorios del apartado 9, que cubren el
+motor de cálculo); guardas contra doble-tap en las pantallas de guardado; reducción del tamaño de
+la APK de release (R8 + shrink de recursos + subset de iconos y fuentes) sin cambiar comportamiento.

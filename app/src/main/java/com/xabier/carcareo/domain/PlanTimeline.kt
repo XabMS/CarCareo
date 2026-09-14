@@ -37,6 +37,10 @@ data class PlanTimeline(
 ) {
     companion object {
         const val MIN_WINDOW_KM = 12_000
+        /** Forward tasks beyond this are dropped from the sketch entirely (they'd
+         * otherwise stretch the axis and squeeze near-term markers). They still
+         * show up in the soon/later buckets. */
+        const val MAX_WINDOW_KM = 60_000
         const val MAX_FORWARD_MARKERS = 3
         const val WINDOW_STEP_KM = 1_000
         const val DAYS_PER_YEAR = 365.0
@@ -61,6 +65,7 @@ fun buildPlanTimeline(status: VehiclePlanStatus, annualKmEstimate: Int?): PlanTi
 
     val forward = (soon + later)
         .mapNotNull { tws -> kmFromNow(tws.computation)?.let { tws to it } }
+        .filter { it.second <= PlanTimeline.MAX_WINDOW_KM }
         .sortedBy { it.second }
 
     val windowKm = maxOf(

@@ -44,8 +44,8 @@ History & costs · plan editor · task editor
 
 **1 · Add a vehicle.** Pick a type (petrol motorbike, petrol car, electric car),
 name it, and enter the current odometer reading. Make, model, year and plate are
-optional. A yearly-km estimate (10 000 km for cars, 8 000 for motorbikes by
-default) lets the app project the odometer forward between readings.
+optional. A yearly-km estimate (12,000 km by default, editable per vehicle) lets
+the app project the odometer forward between readings.
 
 **2 · Give it a plan.** Each vehicle has its own list of maintenance tasks, each
 with a **km interval, a time interval, or both** (whichever comes first). Start
@@ -128,7 +128,8 @@ Checks:
 ```
 
 The instrumented backup round-trip test (`BackupRoundTripTest`) needs a device or
-emulator and is run from Android Studio.
+emulator and is run from Android Studio. GitHub Actions runs the unit-test suite
+and lint on every push and pull request.
 
 ## Design notes
 
@@ -138,6 +139,7 @@ emulator and is run from Android Studio.
 - **`plan-app-mantenimiento-vehiculos.md` (section 2) is the source of truth for
   behaviour** and its decisions are fixed.
 - Task state is computed, never persisted.
-- Local-only by design: `allowBackup=false`, no cloud sync. The database
-  currently ships without a Room migration path, so the first schema change will
-  need one.
+- Local-only by design: `allowBackup=false`, no cloud sync. The database has a
+  versioned Room migration path (currently schema v2), verified by an
+  instrumented `MigrationTest`; any future schema change needs its own
+  `Migration` and test.
