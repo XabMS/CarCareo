@@ -20,7 +20,7 @@ import com.xabier.carcareo.data.entity.Vehicle
         MaintenanceRecord::class,
         RecordTaskCrossRef::class,
     ],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -48,6 +48,7 @@ abstract class AppDatabase : RoomDatabase() {
                 // Room turns SQLite foreign keys on for us, so the ON DELETE CASCADE
                 // declared on the entities is what wipes a vehicle's tasks, records
                 // and cross-refs (relied on by the "replace all" import).
+                .addMigrations(MIGRATION_1_2)
                 .build()
     }
 }

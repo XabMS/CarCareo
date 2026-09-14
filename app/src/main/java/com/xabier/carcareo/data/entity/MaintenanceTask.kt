@@ -22,7 +22,10 @@ import androidx.room.PrimaryKey
             onDelete = ForeignKey.CASCADE,
         ),
     ],
-    indices = [Index("vehicleId")],
+    indices = [
+        Index("vehicleId"),
+        Index(value = ["vehicleId", "name"], unique = true),
+    ],
 )
 data class MaintenanceTask(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,

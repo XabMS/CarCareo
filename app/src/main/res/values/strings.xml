@@ -74,6 +74,8 @@
     <string name="field_optional">Optional</string>
     <string name="error_name_required">Enter a name for the vehicle</string>
     <string name="error_km_invalid">Enter a valid km value</string>
+    <string name="error_date_future">Pick a date that isn\'t in the future</string>
+    <string name="error_cost_invalid">Enter a valid cost</string>
     <string name="form_fix_errors">Check the highlighted fields</string>
 
     <!-- Archived (P6 sub-screen) -->
@@ -146,7 +148,6 @@
     <string name="log_notes">Notes</string>
     <string name="log_save">Save record</string>
     <string name="log_confirms_odometer">Also confirms the odometer at %1$s km</string>
-    <string name="log_km_warn_low">Lower than the last confirmed value (%1$s km).</string>
     <string name="error_odometer_required">Enter the odometer reading</string>
 
     <!-- History (P5) -->
@@ -183,6 +184,10 @@
     <plurals name="msg_import_ok">
         <item quantity="one">1 vehicle imported</item>
         <item quantity="other">%1$s vehicles imported</item>
+    </plurals>
+    <plurals name="msg_import_links_unresolved">
+        <item quantity="one">%1$s record link could not be restored.</item>
+        <item quantity="other">%1$s record links could not be restored.</item>
     </plurals>
     <string name="msg_import_failed_malformed">That file is not a valid backup.</string>
     <string name="msg_import_failed_version">That file was made with a newer version of the app.</string>

@@ -87,6 +87,17 @@ android {
     testOptions {
         unitTests {
             isReturnDefaultValues = true
+            // Robolectric needs Android resources/assets on the unit-test classpath;
+            // MigrationTestHelper needs the exported schema JSONs below as an asset.
+            isIncludeAndroidResources = true
+        }
+    }
+
+    sourceSets {
+        getByName("androidTest") {
+            // Room's exported schema JSONs — MigrationTestHelper reads the "from"
+            // version's schema from here to build a starting database.
+            assets.srcDirs("$projectDir/schemas")
         }
     }
 }
@@ -131,6 +142,8 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation(libs.androidx.test.core)
 
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.junit)
@@ -138,4 +151,5 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.kotlinx.coroutines.test)
+    androidTestImplementation(libs.androidx.room.testing)
 }

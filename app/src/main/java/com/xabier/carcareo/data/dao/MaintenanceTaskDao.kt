@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.xabier.carcareo.data.entity.MaintenanceTask
 import kotlinx.coroutines.flow.Flow
@@ -43,4 +44,27 @@ interface MaintenanceTaskDao {
 
     @Delete
     suspend fun delete(task: MaintenanceTask)
+
+    /** Appends [task] at the end of the vehicle's plan, atomically. */
+    @Transaction
+    suspend fun insertAppending(task: MaintenanceTask): Long {
+        val nextOrder = (getForVehicle(task.vehicleId).maxOfOrNull { it.sortOrder } ?: -1) + 1
+        return insert(task.copy(sortOrder = nextOrder))
+    }
+
+    /**
+     * Appends [candidates] to the vehicle's plan, dropping names it already has,
+     * atomically. See [com.xabier.carcareo.data.repository.MaintenanceTaskRepository]'s
+     * old `addNew` for why duplicate names must never be inserted.
+     */
+    @Transaction
+    suspend fun insertAllAppending(vehicleId: Long, candidates: List<MaintenanceTask>): List<Long> {
+        val existing = getForVehicle(vehicleId)
+        val taken = existing.mapTo(HashSet()) { it.name.lowercase() }
+        var order = (existing.maxOfOrNull { it.sortOrder } ?: -1) + 1
+        val toInsert = candidates.mapNotNull { task ->
+            if (!taken.add(task.name.lowercase())) null else task.copy(sortOrder = order++)
+        }
+        return if (toInsert.isNotEmpty()) insertAll(toInsert) else emptyList()
+    }
 }

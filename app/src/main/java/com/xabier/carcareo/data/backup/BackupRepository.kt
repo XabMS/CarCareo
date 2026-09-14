@@ -20,6 +20,13 @@ enum class ImportMode {
     ADD,
 }
 
+/**
+ * Outcome of [BackupRepository.importJson]. [unresolvedLinks] counts record
+ * task-name references that didn't match any task in that record's vehicle
+ * (typo, removed task, stale reference) — those links are simply dropped.
+ */
+data class ImportResult(val vehicles: Int, val unresolvedLinks: Int)
+
 class BackupRepository(private val db: AppDatabase) {
 
     private val vehicleDao = db.vehicleDao()
@@ -82,22 +89,23 @@ class BackupRepository(private val db: AppDatabase) {
     /**
      * Parses + validates entirely in memory (throws [BackupException], DB
      * untouched), then applies the whole file in a single transaction.
-     * Returns the number of vehicles written.
      */
-    suspend fun importJson(text: String, mode: ImportMode): Int {
+    suspend fun importJson(text: String, mode: ImportMode): ImportResult {
         val backup = BackupCodec.decode(text)   // throws before any write
+        var unresolvedLinks = 0
         db.withTransaction {
             if (mode == ImportMode.REPLACE) {
                 vehicleDao.deleteAll()
             }
             for (bv in backup.vehicles) {
-                writeVehicle(bv)
+                unresolvedLinks += writeVehicle(bv)
             }
         }
-        return backup.vehicles.size
+        return ImportResult(vehicles = backup.vehicles.size, unresolvedLinks = unresolvedLinks)
     }
 
-    private suspend fun writeVehicle(bv: BackupVehicle) {
+    /** Returns the number of record task-name references that couldn't be resolved. */
+    private suspend fun writeVehicle(bv: BackupVehicle): Int {
         val vehicleId = vehicleDao.insert(
             Vehicle(
                 name = bv.name,
@@ -134,6 +142,7 @@ class BackupRepository(private val db: AppDatabase) {
             taskIdByName[bt.name.lowercase()] = id
         }
 
+        var unresolvedLinks = 0
         for (br in bv.records) {
             val recordId = recordDao.insert(
                 MaintenanceRecord(
@@ -146,13 +155,15 @@ class BackupRepository(private val db: AppDatabase) {
                     attachmentUri = null,
                 ),
             )
-            val refs = br.taskNames
-                .mapNotNull { taskIdByName[it.lowercase()] }
-                .distinct()
-                .map { RecordTaskCrossRef(recordId = recordId, taskId = it) }
+            val distinctNames = br.taskNames.map { it.lowercase() }.distinct()
+            val refs = distinctNames.mapNotNull { name ->
+                taskIdByName[name]?.let { RecordTaskCrossRef(recordId = recordId, taskId = it) }
+            }
+            unresolvedLinks += distinctNames.size - refs.size
             if (refs.isNotEmpty()) {
                 recordDao.insertCrossRefs(refs)
             }
         }
+        return unresolvedLinks
     }
 }

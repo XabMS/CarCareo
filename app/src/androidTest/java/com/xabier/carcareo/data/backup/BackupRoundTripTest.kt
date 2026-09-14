@@ -80,7 +80,8 @@ class BackupRoundTripTest {
 
         val json = backup.exportJson()
         val imported = backup.importJson(json, ImportMode.REPLACE)
-        assertEquals(1, imported)
+        assertEquals(1, imported.vehicles)
+        assertEquals(0, imported.unresolvedLinks)
 
         val vehicles = vehicleDao.getAll()
         assertEquals(1, vehicles.size)

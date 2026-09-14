@@ -61,6 +61,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xabier.carcareo.R
+import com.xabier.carcareo.domain.KmChangeSeverity
+import com.xabier.carcareo.domain.OdometerUpdate
 import com.xabier.carcareo.domain.TaskStatus
 import com.xabier.carcareo.ui.AppViewModelProvider
 import com.xabier.carcareo.ui.component.FieldHelper
@@ -140,7 +142,7 @@ fun LogMaintenanceScreen(
                 },
             )
         },
-        bottomBar = { LogFooter(state.odometer, onSave = { viewModel.save(onSaved) }) },
+        bottomBar = { LogFooter(state.odometer, saving = state.saving, onSave = { viewModel.save(onSaved) }) },
     ) { padding ->
         if (state.loading) {
             Box(Modifier.fillMaxSize().padding(padding))
@@ -156,15 +158,17 @@ fun LogMaintenanceScreen(
                 .padding(top = 12.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            val km = state.odometer.toIntOrNull()
+            val severity = km?.let { OdometerUpdate.classify(state.lastConfirmedKm, it) }
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 DateBox(
                     label = stringResource(R.string.log_date),
                     value = state.date,
                     onValueChange = viewModel::setDate,
+                    isError = state.dateError,
+                    errorText = stringResource(R.string.error_date_future),
                     modifier = Modifier.weight(1f),
                 )
-                val lowKm = state.odometer.toIntOrNull()
-                    ?.let { it in 1 until state.lastConfirmedKm } == true
                 LabeledField(
                     label = stringResource(R.string.log_odometer_field) + sep +
                         stringResource(R.string.unit_km),
@@ -172,10 +176,12 @@ fun LogMaintenanceScreen(
                     onValueChange = viewModel::setOdometer,
                     isError = state.odometerError,
                     errorText = stringResource(R.string.error_odometer_required),
-                    helperText = if (lowKm) {
-                        stringResource(R.string.log_km_warn_low, formatNumber(state.lastConfirmedKm))
-                    } else {
-                        null
+                    helperText = when (severity) {
+                        KmChangeSeverity.MINOR_DECREASE ->
+                            stringResource(R.string.update_km_warn_minor, formatNumber(state.lastConfirmedKm))
+                        KmChangeSeverity.MAJOR_DECREASE ->
+                            stringResource(R.string.update_km_warn_major, formatNumber(state.lastConfirmedKm))
+                        else -> null
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     textStyle = LedgerText.rowMeta.copy(
@@ -184,6 +190,15 @@ fun LogMaintenanceScreen(
                     ),
                     modifier = Modifier.weight(1f),
                 )
+            }
+            if (severity == KmChangeSeverity.MAJOR_DECREASE) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Checkbox(
+                        checked = state.majorDecreaseConfirmed,
+                        onCheckedChange = viewModel::setMajorDecreaseConfirmed,
+                    )
+                    Text(stringResource(R.string.update_km_confirm_major))
+                }
             }
 
             if (state.tasks.isNotEmpty()) {
@@ -261,6 +276,8 @@ fun LogMaintenanceScreen(
                             label = stringResource(R.string.log_cost),
                             value = state.cost,
                             onValueChange = viewModel::setCost,
+                            isError = state.costError,
+                            errorText = stringResource(R.string.error_cost_invalid),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         )
                         LabeledField(
@@ -300,7 +317,7 @@ fun LogMaintenanceScreen(
 }
 
 @Composable
-private fun LogFooter(odometer: String, onSave: () -> Unit) {
+private fun LogFooter(odometer: String, saving: Boolean, onSave: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -317,6 +334,7 @@ private fun LogFooter(odometer: String, onSave: () -> Unit) {
             LedgerPrimaryButton(
                 text = stringResource(R.string.log_save),
                 onClick = onSave,
+                enabled = !saving,
                 modifier = Modifier.fillMaxWidth(),
             )
             val km = odometer.toIntOrNull()
@@ -339,17 +357,23 @@ private fun DateBox(
     value: LocalDate,
     onValueChange: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    errorText: String? = null,
 ) {
     var showDialog by rememberSaveable { mutableStateOf(false) }
     Column(modifier) {
-        FieldLabel(label)
+        FieldLabel(label, isError = isError)
         Row(
             Modifier
                 .fillMaxWidth()
                 .padding(top = 6.dp)
                 .clip(LedgerCardShape)
                 .background(MaterialTheme.colorScheme.surfaceContainerLowest)
-                .border(1.dp, MaterialTheme.colorScheme.outline, LedgerCardShape)
+                .border(
+                    1.dp,
+                    if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline,
+                    LedgerCardShape,
+                )
                 .heightIn(min = 48.dp)
                 .clickable { showDialog = true }
                 .padding(horizontal = 14.dp),
@@ -367,6 +391,9 @@ private fun DateBox(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.size(18.dp),
             )
+        }
+        if (isError && errorText != null) {
+            FieldHelper(errorText, Modifier.padding(top = 4.dp), isError = true)
         }
     }
 

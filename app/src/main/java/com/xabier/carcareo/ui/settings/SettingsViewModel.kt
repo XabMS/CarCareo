@@ -20,7 +20,7 @@ import kotlinx.coroutines.launch
 
 sealed interface SettingsEvent {
     data object Exported : SettingsEvent
-    data class Imported(val vehicles: Int, val mode: ImportMode) : SettingsEvent
+    data class Imported(val vehicles: Int, val mode: ImportMode, val unresolvedLinks: Int = 0) : SettingsEvent
     data class ImportFailed(val error: BackupError?) : SettingsEvent
     data object ExportFailed : SettingsEvent
 }
@@ -91,8 +91,8 @@ class SettingsViewModel(
         _state.update { it.copy(busy = true) }
         viewModelScope.launch {
             val event = try {
-                val count = backupRepository.importJson(source(), mode)
-                SettingsEvent.Imported(count, mode)
+                val result = backupRepository.importJson(source(), mode)
+                SettingsEvent.Imported(result.vehicles, mode, result.unresolvedLinks)
             } catch (e: BackupException) {
                 SettingsEvent.ImportFailed(e.error)
             } catch (_: Exception) {

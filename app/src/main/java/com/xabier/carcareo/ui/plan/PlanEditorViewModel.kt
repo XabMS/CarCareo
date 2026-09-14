@@ -9,6 +9,7 @@ import com.xabier.carcareo.data.repository.MaintenanceTaskRepository
 import com.xabier.carcareo.data.repository.VehicleRepository
 import com.xabier.carcareo.domain.MaintenanceTaskRules
 import com.xabier.carcareo.ui.navigation.Destinations
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -19,6 +20,7 @@ data class PlanEditorUiState(
     val loading: Boolean = true,
     val vehicle: Vehicle? = null,
     val tasks: List<MaintenanceTask> = emptyList(),
+    val saving: Boolean = false,
 )
 
 class PlanEditorViewModel(
@@ -29,12 +31,15 @@ class PlanEditorViewModel(
 
     private val vehicleId: Long = checkNotNull(savedStateHandle[Destinations.VEHICLE_ID_ARG])
 
+    private val savingFlow = MutableStateFlow(false)
+
     val uiState: StateFlow<PlanEditorUiState> =
         combine(
             vehicleRepository.observe(vehicleId),
             taskRepository.observeForVehicle(vehicleId),
-        ) { vehicle, tasks ->
-            PlanEditorUiState(loading = false, vehicle = vehicle, tasks = tasks)
+            savingFlow,
+        ) { vehicle, tasks, saving ->
+            PlanEditorUiState(loading = false, vehicle = vehicle, tasks = tasks, saving = saving)
         }.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
@@ -46,6 +51,8 @@ class PlanEditorViewModel(
      * caller re-renders the draft with its error flags set.
      */
     fun saveTask(draft: TaskDraft, onResult: (TaskDraft) -> Unit) {
+        if (savingFlow.value) return
+
         val name = draft.name.trim()
         val km = draft.intervalKm.trim().toIntOrNull()
         val months = draft.intervalMonths.trim().toIntOrNull()
@@ -74,41 +81,47 @@ class PlanEditorViewModel(
         val warnDays = draft.warnDaysBefore.trim().toIntOrNull()?.coerceAtLeast(0)
             ?: TaskDraft.DEFAULT_WARN_DAYS
 
+        savingFlow.value = true
         viewModelScope.launch {
-            if (draft.id == null) {
-                taskRepository.add(
-                    MaintenanceTask(
-                        vehicleId = vehicleId,
-                        name = name,
-                        intervalKm = km,
-                        intervalMonths = months,
-                        warnKmBefore = warnKm,
-                        warnDaysBefore = warnDays,
-                        notes = draft.notes.trim().ifBlank { null },
-                        active = draft.active,
+            try {
+                if (draft.id == null) {
+                    taskRepository.add(
+                        MaintenanceTask(
+                            vehicleId = vehicleId,
+                            name = name,
+                            intervalKm = km,
+                            intervalMonths = months,
+                            warnKmBefore = warnKm,
+                            warnDaysBefore = warnDays,
+                            notes = draft.notes.trim().ifBlank { null },
+                            active = draft.active,
+                        ),
+                    )
+                } else {
+                    val existing = uiState.value.tasks.firstOrNull { it.id == draft.id }
+                        ?: return@launch
+                    taskRepository.update(
+                        existing.copy(
+                            name = name,
+                            intervalKm = km,
+                            intervalMonths = months,
+                            warnKmBefore = warnKm,
+                            warnDaysBefore = warnDays,
+                            notes = draft.notes.trim().ifBlank { null },
+                            active = draft.active,
+                        ),
+                    )
+                }
+                onResult(
+                    draft.copy(
+                        nameError = false,
+                        duplicateNameError = false,
+                        intervalError = false,
                     ),
                 )
-            } else {
-                val existing = uiState.value.tasks.firstOrNull { it.id == draft.id } ?: return@launch
-                taskRepository.update(
-                    existing.copy(
-                        name = name,
-                        intervalKm = km,
-                        intervalMonths = months,
-                        warnKmBefore = warnKm,
-                        warnDaysBefore = warnDays,
-                        notes = draft.notes.trim().ifBlank { null },
-                        active = draft.active,
-                    ),
-                )
+            } finally {
+                savingFlow.value = false
             }
-            onResult(
-                draft.copy(
-                    nameError = false,
-                    duplicateNameError = false,
-                    intervalError = false,
-                ),
-            )
         }
     }
 

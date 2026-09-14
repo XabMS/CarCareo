@@ -7,6 +7,8 @@ import com.xabier.carcareo.data.entity.MaintenanceRecord
 import com.xabier.carcareo.data.repository.MaintenanceRecordRepository
 import com.xabier.carcareo.data.repository.MaintenanceTaskRepository
 import com.xabier.carcareo.data.repository.VehicleRepository
+import com.xabier.carcareo.domain.KmChangeSeverity
+import com.xabier.carcareo.domain.OdometerUpdate
 import com.xabier.carcareo.domain.PlanStatusCalculator
 import com.xabier.carcareo.domain.TaskComputation
 import com.xabier.carcareo.domain.TaskStatus
@@ -42,6 +44,10 @@ data class LogMaintenanceUiState(
     val attachmentUri: String? = null,
     val extrasExpanded: Boolean = false,
     val odometerError: Boolean = false,
+    val dateError: Boolean = false,
+    val costError: Boolean = false,
+    val majorDecreaseConfirmed: Boolean = false,
+    val saving: Boolean = false,
 )
 
 class LogMaintenanceViewModel(
@@ -134,15 +140,22 @@ class LogMaintenanceViewModel(
         }
     }
 
-    fun setDate(date: LocalDate) = _ui.update { it.copy(date = date) }
+    fun setDate(date: LocalDate) = _ui.update { it.copy(date = date, dateError = false) }
 
     fun setOdometer(value: String) =
         _ui.update { it.copy(odometer = value.filter(Char::isDigit), odometerError = false) }
 
     fun setWorkshop(value: String) = _ui.update { it.copy(workshop = value) }
 
-    fun setCost(value: String) =
-        _ui.update { it.copy(cost = value.filter { c -> c.isDigit() || c == '.' || c == ',' }) }
+    fun setCost(value: String) = _ui.update {
+        it.copy(
+            cost = value.filter { c -> c.isDigit() || c == '.' || c == ',' },
+            costError = false,
+        )
+    }
+
+    fun setMajorDecreaseConfirmed(confirmed: Boolean) =
+        _ui.update { it.copy(majorDecreaseConfirmed = confirmed) }
 
     fun setNotes(value: String) = _ui.update { it.copy(notes = value) }
 
@@ -173,16 +186,27 @@ class LogMaintenanceViewModel(
      */
     fun save(onSaved: () -> Unit) {
         val state = _ui.value
+        if (state.saving) return
+
         val km = state.odometer.trim().toIntOrNull()
-        if (km == null || km < 0) {
-            _ui.update { it.copy(odometerError = true) }
+        val odometerError = km == null || km < 0
+
+        val severity = km?.let { OdometerUpdate.classify(state.lastConfirmedKm, it) }
+        val needsMajorConfirmation = severity == KmChangeSeverity.MAJOR_DECREASE &&
+            !state.majorDecreaseConfirmed
+
+        val dateError = state.date.isAfter(LocalDate.now())
+
+        val trimmedCost = state.cost.trim()
+        val cost = trimmedCost.replace(',', '.').toBigDecimalOrNull()?.takeIf { it >= BigDecimal.ZERO }
+        val costError = trimmedCost.isNotEmpty() && cost == null
+
+        if (odometerError || dateError || costError || needsMajorConfirmation) {
+            _ui.update {
+                it.copy(odometerError = odometerError, dateError = dateError, costError = costError)
+            }
             return
         }
-
-        val cost = state.cost.trim()
-            .replace(',', '.')
-            .toBigDecimalOrNull()
-            ?.takeIf { it >= BigDecimal.ZERO }
 
         val record = MaintenanceRecord(
             id = recordId ?: 0,
@@ -195,9 +219,14 @@ class LogMaintenanceViewModel(
             attachmentUri = state.attachmentUri,
         )
 
+        _ui.update { it.copy(saving = true) }
         viewModelScope.launch {
-            recordRepository.save(record, state.selectedTaskIds.toList())
-            onSaved()
+            try {
+                recordRepository.save(record, state.selectedTaskIds.toList())
+                onSaved()
+            } finally {
+                _ui.update { it.copy(saving = false) }
+            }
         }
     }
 }

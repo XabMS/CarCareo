@@ -150,8 +150,19 @@ fun SettingsScreen(
         null -> null
         SettingsEvent.Exported -> stringResource(R.string.msg_export_ok)
         SettingsEvent.ExportFailed -> stringResource(R.string.msg_export_failed)
-        is SettingsEvent.Imported ->
-            pluralStringResource(R.plurals.msg_import_ok, event.vehicles, event.vehicles)
+        is SettingsEvent.Imported -> {
+            val base = pluralStringResource(R.plurals.msg_import_ok, event.vehicles, event.vehicles)
+            if (event.unresolvedLinks > 0) {
+                val warning = pluralStringResource(
+                    R.plurals.msg_import_links_unresolved,
+                    event.unresolvedLinks,
+                    event.unresolvedLinks,
+                )
+                "$base $warning"
+            } else {
+                base
+            }
+        }
         is SettingsEvent.ImportFailed -> when (event.error) {
             BackupError.MALFORMED -> stringResource(R.string.msg_import_failed_malformed)
             BackupError.UNSUPPORTED_VERSION -> stringResource(R.string.msg_import_failed_version)

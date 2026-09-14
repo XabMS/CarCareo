@@ -188,6 +188,7 @@ fun PlanTab(
         TaskEditorSheet(
             draft = draft,
             vehicleName = state.vehicle?.name.orEmpty(),
+            saving = state.saving,
             onDismiss = { editingDraft = null },
             onChange = { editingDraft = it },
             onSave = {
@@ -423,6 +424,7 @@ private fun EmptyPlan(modifier: Modifier = Modifier, onApplyTemplate: () -> Unit
 private fun TaskEditorSheet(
     draft: TaskDraft,
     vehicleName: String,
+    saving: Boolean,
     onDismiss: () -> Unit,
     onChange: (TaskDraft) -> Unit,
     onSave: () -> Unit,
@@ -570,6 +572,7 @@ private fun TaskEditorSheet(
                 LedgerPrimaryButton(
                     text = stringResource(R.string.task_sheet_save),
                     onClick = onSave,
+                    enabled = !saving,
                     modifier = Modifier.weight(2f),
                 )
             }

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Build
@@ -31,7 +30,6 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -77,7 +75,6 @@ fun VehicleShellScreen(
     val historyVm: HistoryViewModel = viewModel(factory = AppViewModelProvider.Factory)
 
     val detail by detailVm.uiState.collectAsStateWithLifecycle()
-    val history by historyVm.uiState.collectAsStateWithLifecycle()
 
     var tab by rememberSaveable { mutableStateOf(initialTab) }
     var menuOpen by rememberSaveable { mutableStateOf(false) }
@@ -101,8 +98,10 @@ fun VehicleShellScreen(
                 tasks + sep + pluralStringResource(R.plurals.shell_context_inactive, inactive, inactive)
             } else tasks
         }
-        VehicleTab.HISTORY ->
+        VehicleTab.HISTORY -> {
+            val history by historyVm.uiState.collectAsStateWithLifecycle()
             pluralStringResource(R.plurals.shell_context_records, history.totalRecords, history.totalRecords)
+        }
     }
 
     Column(

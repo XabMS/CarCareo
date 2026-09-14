@@ -20,10 +20,7 @@ class MaintenanceTaskRepository(private val dao: MaintenanceTaskDao) {
         dao.getForVehicle(vehicleId)
 
     /** Appends a task at the end of the plan. */
-    suspend fun add(task: MaintenanceTask): Long {
-        val nextOrder = (dao.getForVehicle(task.vehicleId).maxOfOrNull { it.sortOrder } ?: -1) + 1
-        return dao.insert(task.copy(sortOrder = nextOrder))
-    }
+    suspend fun add(task: MaintenanceTask): Long = dao.insertAppending(task)
 
     suspend fun update(task: MaintenanceTask) = dao.update(task)
 
@@ -77,13 +74,6 @@ class MaintenanceTaskRepository(private val dao: MaintenanceTaskDao) {
      * ambiguous and merge two tasks' history on import.
      */
     private suspend fun addNew(vehicleId: Long, candidates: List<MaintenanceTask>) {
-        val existing = dao.getForVehicle(vehicleId)
-        val taken = existing.mapTo(HashSet()) { it.name.lowercase() }
-        var order = (existing.maxOfOrNull { it.sortOrder } ?: -1) + 1
-
-        val toInsert = candidates.mapNotNull { task ->
-            if (!taken.add(task.name.lowercase())) null else task.copy(sortOrder = order++)
-        }
-        if (toInsert.isNotEmpty()) dao.insertAll(toInsert)
+        dao.insertAllAppending(vehicleId, candidates)
     }
 }

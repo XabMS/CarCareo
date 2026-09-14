@@ -45,6 +45,7 @@ fun DatePickerField(
     onValueChange: (LocalDate) -> Unit,
     modifier: Modifier = Modifier,
     supportingText: String? = null,
+    isError: Boolean = false,
 ) {
     var showDialog by rememberSaveable { mutableStateOf(false) }
 
@@ -55,6 +56,7 @@ fun DatePickerField(
             readOnly = true,
             label = { Text(label) },
             supportingText = supportingText?.let { { Text(it) } },
+            isError = isError,
             trailingIcon = { Icon(Icons.Filled.Event, contentDescription = null) },
             modifier = Modifier.fillMaxWidth(),
         )

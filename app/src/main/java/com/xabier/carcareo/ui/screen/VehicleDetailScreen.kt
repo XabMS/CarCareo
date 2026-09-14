@@ -423,7 +423,8 @@ private fun UpdateOdometerDialog(
 
     val km = kmText.trim().toIntOrNull()
     val severity = km?.let { OdometerUpdate.classify(previousConfirmedKm, it) }
-    val canSave = km != null && km >= 0 &&
+    val dateError = date.isAfter(LocalDate.now())
+    val canSave = km != null && km >= 0 && !dateError &&
         (severity != KmChangeSeverity.MAJOR_DECREASE || majorConfirmed)
 
     AlertDialog(
@@ -444,6 +445,8 @@ private fun UpdateOdometerDialog(
                     label = stringResource(R.string.update_km_date),
                     value = date,
                     onValueChange = { date = it },
+                    isError = dateError,
+                    supportingText = if (dateError) stringResource(R.string.error_date_future) else null,
                 )
                 when (severity) {
                     KmChangeSeverity.MINOR_DECREASE -> Text(

@@ -66,6 +66,8 @@
     <string name="field_optional">Opcional</string>
     <string name="error_name_required">Introduce un nombre para el vehículo</string>
     <string name="error_km_invalid">Introduce un valor de km válido</string>
+    <string name="error_date_future">Elige una fecha que no sea futura</string>
+    <string name="error_cost_invalid">Introduce un coste válido</string>
     <string name="form_fix_errors">Revisa los campos marcados</string>
 
     <string name="archived_empty">No hay vehículos archivados.</string>
@@ -140,7 +142,6 @@
     <string name="log_notes">Notas</string>
     <string name="log_save">Guardar registro</string>
     <string name="log_confirms_odometer">También confirma el kilometraje en %1$s km</string>
-    <string name="log_km_warn_low">Inferior al último valor confirmado (%1$s km).</string>
     <string name="error_odometer_required">Introduce la lectura del cuentakilómetros</string>
 
     <!-- Histórico (P5) -->
@@ -178,6 +179,11 @@
         <item quantity="one">1 vehículo importado</item>
         <item quantity="many">%1$s vehículos importados</item>
         <item quantity="other">%1$s vehículos importados</item>
+    </plurals>
+    <plurals name="msg_import_links_unresolved">
+        <item quantity="one">No se pudo restaurar %1$s enlace de registro.</item>
+        <item quantity="many">No se pudieron restaurar %1$s enlaces de registro.</item>
+        <item quantity="other">No se pudieron restaurar %1$s enlaces de registro.</item>
     </plurals>
     <string name="msg_import_failed_malformed">Ese fichero no es una copia válida.</string>
     <string name="msg_import_failed_version">Ese fichero se creó con una versión más reciente de la app.</string>
