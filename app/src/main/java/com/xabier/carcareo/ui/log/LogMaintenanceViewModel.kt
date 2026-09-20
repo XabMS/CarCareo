@@ -14,6 +14,7 @@ import com.xabier.carcareo.domain.TaskComputation
 import com.xabier.carcareo.domain.TaskStatus
 import com.xabier.carcareo.ui.navigation.Destinations
 import java.math.BigDecimal
+import java.time.Clock
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,7 +34,8 @@ data class LogMaintenanceUiState(
     val loading: Boolean = true,
     val isEdit: Boolean = false,
     val vehicleName: String = "",
-    val date: LocalDate = LocalDate.now(),
+    /** Always set by the ViewModel from its clock; no default, so nothing here reads the clock. */
+    val date: LocalDate,
     val odometer: String = "",
     val lastConfirmedKm: Int = 0,
     val tasks: List<LogTaskRow> = emptyList(),
@@ -55,6 +57,7 @@ class LogMaintenanceViewModel(
     private val vehicleRepository: VehicleRepository,
     private val taskRepository: MaintenanceTaskRepository,
     private val recordRepository: MaintenanceRecordRepository,
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) : ViewModel() {
 
     private val vehicleId: Long = checkNotNull(savedStateHandle[Destinations.VEHICLE_ID_ARG])
@@ -68,9 +71,17 @@ class LogMaintenanceViewModel(
     private val presetTaskId: Long? = savedStateHandle.get<Long>(Destinations.TASK_ID_ARG)
         ?.takeIf { it > 0 }
 
-    private val today: LocalDate = LocalDate.now()
+    /**
+     * Read at each point of use, never cached in a field: this ViewModel can
+     * outlive several midnights (see [com.xabier.carcareo.domain.todayFlow]), and
+     * a save validated against a construction-time date would wrongly accept a
+     * date that has since become the future. Unlike the garage and detail
+     * screens this is not a flow on purpose — the form loads once, so that
+     * re-deriving the pre-selected tasks can never discard the user's own ticks.
+     */
+    private fun today(): LocalDate = LocalDate.now(clock)
 
-    private val _ui = MutableStateFlow(LogMaintenanceUiState())
+    private val _ui = MutableStateFlow(LogMaintenanceUiState(date = today()))
     val ui: StateFlow<LogMaintenanceUiState> = _ui.asStateFlow()
 
     init {
@@ -78,7 +89,7 @@ class LogMaintenanceViewModel(
             val vehicle = vehicleRepository.get(vehicleId) ?: return@launch
             val tasks = taskRepository.getForVehicle(vehicleId)
             val records = recordRepository.observeForVehicle(vehicleId).first()
-            val status = PlanStatusCalculator.forVehicle(vehicle, tasks, records, today)
+            val status = PlanStatusCalculator.forVehicle(vehicle, tasks, records, today())
 
             val activeRows = status.activeOrdered.map {
                 LogTaskRow(it.task.id, it.task.name, it.computation)
@@ -195,7 +206,7 @@ class LogMaintenanceViewModel(
         val needsMajorConfirmation = severity == KmChangeSeverity.MAJOR_DECREASE &&
             !state.majorDecreaseConfirmed
 
-        val dateError = state.date.isAfter(LocalDate.now())
+        val dateError = state.date.isAfter(today())
 
         val trimmedCost = state.cost.trim()
         val cost = trimmedCost.replace(',', '.').toBigDecimalOrNull()?.takeIf { it >= BigDecimal.ZERO }

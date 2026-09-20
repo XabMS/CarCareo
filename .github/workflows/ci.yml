@@ -10,10 +10,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Must match toolchainVersion in gradle/gradle-daemon-jvm.properties.
+      # If it doesn't, Gradle ignores this JDK and downloads its own from
+      # foojay on every cold cache. The app still targets Java 17 bytecode
+      # (app/build.gradle.kts compileOptions) — this is only the daemon's JVM.
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '25'
 
       - uses: android-actions/setup-android@v3
 

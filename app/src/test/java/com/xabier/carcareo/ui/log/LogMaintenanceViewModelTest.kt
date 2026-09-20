@@ -13,7 +13,9 @@ import com.xabier.carcareo.data.repository.MaintenanceRecordRepository
 import com.xabier.carcareo.data.repository.MaintenanceTaskRepository
 import com.xabier.carcareo.data.repository.VehicleRepository
 import com.xabier.carcareo.ui.navigation.Destinations
+import java.time.Clock
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.asExecutor
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -41,7 +43,13 @@ class LogMaintenanceViewModelTest {
     private lateinit var taskRepository: MaintenanceTaskRepository
     private lateinit var recordRepository: MaintenanceRecordRepository
     private var vehicleId: Long = 0
+
+    // The ViewModel takes its clock, so "today" is whatever this fixture says it
+    // is. Nothing here depends on the wall clock — an earlier version hardcoded
+    // this date and started failing the day it went past.
+    private val zone: ZoneId = ZoneId.of("Europe/Madrid")
     private val today: LocalDate = LocalDate.of(2026, 9, 14)
+    private val clock: Clock = Clock.fixed(today.atStartOfDay(zone).toInstant(), zone)
 
     @Before
     fun setUp() = runTest(testDispatcher) {
@@ -86,7 +94,13 @@ class LogMaintenanceViewModelTest {
 
     private fun TestScope.viewModel(): LogMaintenanceViewModel {
         val handle = SavedStateHandle(mapOf(Destinations.VEHICLE_ID_ARG to vehicleId))
-        val vm = LogMaintenanceViewModel(handle, vehicleRepository, taskRepository, recordRepository)
+        val vm = LogMaintenanceViewModel(
+            handle,
+            vehicleRepository,
+            taskRepository,
+            recordRepository,
+            clock,
+        )
         advanceUntilIdle()
         return vm
     }
@@ -134,6 +148,12 @@ class LogMaintenanceViewModelTest {
         advanceUntilIdle()
         assertFalse(saved)
         assertTrue(vm.ui.value.dateError)
+    }
+
+    @Test
+    fun `the date field defaults to the clock's today, not the wall clock`() = runTest(testDispatcher) {
+        val vm = viewModel()
+        assertEquals(today, vm.ui.value.date)
     }
 
     @Test

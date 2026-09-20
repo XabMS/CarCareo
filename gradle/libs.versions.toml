@@ -1,5 +1,5 @@
 [versions]
-agp = "9.4.0"
+agp = "9.4.1"
 kotlin = "2.3.21"
 # KSP is decoupled from the Kotlin compiler version since 2.3.0 and gained
 # AGP 9 built-in-Kotlin support in 2.3.1.
