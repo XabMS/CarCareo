@@ -143,3 +143,13 @@ and lint on every push and pull request.
   versioned Room migration path (currently schema v2), verified by an
   instrumented `MigrationTest`; any future schema change needs its own
   `Migration` and test.
+
+## License
+
+Copyright (C) 2026 Xabier
+
+CarCareo is free software: you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation, either version 3 of the License, or (at your option) any later
+version. It is distributed WITHOUT ANY WARRANTY; see [`LICENSE`](LICENSE) for
+the full text.
