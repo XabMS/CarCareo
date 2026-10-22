@@ -146,7 +146,7 @@ and lint on every push and pull request.
 
 ## License
 
-Copyright (C) 2026 Xabier
+Copyright (C) 2026 Xabier Martín Soroa
 
 CarCareo is free software: you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free Software
