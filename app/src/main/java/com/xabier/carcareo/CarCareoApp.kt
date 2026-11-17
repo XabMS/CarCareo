@@ -4,6 +4,7 @@ import android.app.Application
 import com.xabier.carcareo.di.AppContainer
 import com.xabier.carcareo.notifications.Notifications
 import com.xabier.carcareo.notifications.WorkScheduler
+import com.xabier.carcareo.ui.format.CurrencySetting
 
 /**
  * Manual dependency injection root. The spec's architecture is
@@ -19,6 +20,7 @@ class CarCareoApp : Application() {
     override fun onCreate() {
         super.onCreate()
         container = AppContainer(this)
+        CurrencySetting.code = container.appPreferences.currencyCode
 
         // Optional reminders (F6). Channels are cheap to (re)create; the workers
         // are (re)scheduled to match whatever the user last chose in Settings.

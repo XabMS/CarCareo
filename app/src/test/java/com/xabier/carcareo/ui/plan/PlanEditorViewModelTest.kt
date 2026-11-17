@@ -53,7 +53,7 @@ class PlanEditorViewModelTest {
             .allowMainThreadQueries()
             .build()
         taskRepository = MaintenanceTaskRepository(db.maintenanceTaskDao())
-        vehicleRepository = VehicleRepository(db.vehicleDao())
+        vehicleRepository = VehicleRepository(db)
 
         vehicleId = db.vehicleDao().insert(
             Vehicle(
@@ -154,5 +154,19 @@ class PlanEditorViewModelTest {
         taskRepository.add(MaintenanceTask(vehicleId = vehicleId, name = "Coolant", intervalKm = 30_000))
         val vm = viewModel()
         assertEquals(1, vm.uiState.value.tasks.size)
+    }
+
+    @Test
+    fun `an interval too large to parse is an error, not a missing interval`() = runTest(testDispatcher) {
+        val vm = viewModel()
+        var result: TaskDraft? = null
+        // Months alone would be valid; the unreadable km must still block the save.
+        vm.saveTask(TaskDraft(name = "Oil change", intervalKm = "99999999999", intervalMonths = "12")) {
+            result = it
+        }
+        runCurrent()
+
+        assertTrue(result?.intervalError == true)
+        assertEquals(0, vm.uiState.value.tasks.size)
     }
 }

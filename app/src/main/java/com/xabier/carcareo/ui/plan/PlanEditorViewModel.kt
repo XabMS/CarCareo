@@ -64,7 +64,11 @@ class PlanEditorViewModel(
         val duplicateNameError = !nameError && uiState.value.tasks.any {
             it.id != draft.id && it.name.equals(name, ignoreCase = true)
         }
-        val intervalError = !MaintenanceTaskRules.intervalsValid(km, months)
+        // A filled-in field that does not parse (e.g. too many digits for an Int)
+        // must be an error, not silently read as "no interval".
+        val unparsable = (draft.intervalKm.isNotBlank() && km == null) ||
+            (draft.intervalMonths.isNotBlank() && months == null)
+        val intervalError = unparsable || !MaintenanceTaskRules.intervalsValid(km, months)
         if (nameError || duplicateNameError || intervalError) {
             onResult(
                 draft.copy(
@@ -99,7 +103,12 @@ class PlanEditorViewModel(
                     )
                 } else {
                     val existing = uiState.value.tasks.firstOrNull { it.id == draft.id }
-                        ?: return@launch
+                    if (existing == null) {
+                        // Deleted while its sheet was open: nothing to update.
+                        // Report success so the sheet closes instead of hanging.
+                        onResult(draft.copy(nameError = false, duplicateNameError = false, intervalError = false))
+                        return@launch
+                    }
                     taskRepository.update(
                         existing.copy(
                             name = name,

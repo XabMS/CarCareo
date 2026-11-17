@@ -17,6 +17,11 @@ class ArchivedVehiclesViewModel(
         repository.observeArchived()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Permanently deletes the vehicle with its plan and history. Not undoable. */
+    fun delete(id: Long) {
+        viewModelScope.launch { repository.delete(id) }
+    }
+
     fun unarchive(id: Long) {
         viewModelScope.launch { repository.setArchived(id, archived = false) }
     }

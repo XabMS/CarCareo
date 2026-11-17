@@ -1,6 +1,8 @@
 package com.xabier.carcareo.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.lifecycle.Lifecycle
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -17,34 +19,55 @@ import com.xabier.carcareo.ui.screen.VehicleFormScreen
 import com.xabier.carcareo.ui.screen.VehicleShellScreen
 
 /**
- * Single NavHost for the whole app. All six screens plus the add/edit-vehicle
- * and archived sub-screens are wired here. Screens still in placeholder state
- * (plan editor, log, history) get filled in by their phases.
+ * Single NavHost for the whole app: the garage, the three-tab vehicle shell,
+ * the add / edit vehicle form with its plan-setup step, the log / edit record
+ * form, archived vehicles and settings.
+ *
+ * [openVehicleId] is a one-shot request to jump to a vehicle — set when the app
+ * is opened from a maintenance notification — and [onVehicleOpened] clears it.
+ *
+ * Every navigation goes through [navigateFrom] / [popFrom]: a second tap that
+ * lands while the first one's transition is still running must do nothing.
+ * Unguarded, a double tap on a card opens the screen twice, and a double tap on
+ * Back pops the garage as well and leaves an empty, blank NavHost.
  */
 @Composable
 fun CarCareoNavGraph(
     navController: NavHostController = rememberNavController(),
+    openVehicleId: Long? = null,
+    onVehicleOpened: () -> Unit = {},
 ) {
     val vehicleIdArg = listOf(
         navArgument(Destinations.VEHICLE_ID_ARG) { type = NavType.LongType },
     )
 
+    LaunchedEffect(openVehicleId) {
+        if (openVehicleId != null) {
+            // Rebuild the stack as garage -> vehicle, whatever was open before.
+            navController.navigate(Destinations.vehicleDetail(openVehicleId)) {
+                popUpTo(Destinations.GARAGE)
+                launchSingleTop = true
+            }
+            onVehicleOpened()
+        }
+    }
+
     NavHost(navController = navController, startDestination = Destinations.GARAGE) {
 
-        composable(Destinations.GARAGE) {
+        composable(Destinations.GARAGE) { entry ->
             GarageScreen(
-                onAddVehicle = { navController.navigate(Destinations.VEHICLE_FORM_NEW) },
-                onOpenVehicle = { navController.navigate(Destinations.vehicleDetail(it)) },
-                onOpenArchived = { navController.navigate(Destinations.ARCHIVED) },
-                onOpenSettings = { navController.navigate(Destinations.SETTINGS) },
+                onAddVehicle = { navController.navigateFrom(entry, Destinations.VEHICLE_FORM_NEW) },
+                onOpenVehicle = { navController.navigateFrom(entry, Destinations.vehicleDetail(it)) },
+                onOpenArchived = { navController.navigateFrom(entry, Destinations.ARCHIVED) },
+                onOpenSettings = { navController.navigateFrom(entry, Destinations.SETTINGS) },
                 onLogWork = { vId, taskId ->
-                    navController.navigate(Destinations.logMaintenance(vId, taskId))
+                    navController.navigateFrom(entry, Destinations.logMaintenance(vId, taskId))
                 },
             )
         }
 
-        // The three vehicle-scoped routes all render the same shell — kept as
-        // separate routes so notifications and deep links still resolve.
+        // The three vehicle-scoped routes all render the same shell and differ
+        // only in the tab they open on.
         listOf(
             Destinations.VEHICLE_DETAIL to VehicleTab.OVERVIEW,
             Destinations.PLAN_EDITOR to VehicleTab.PLAN,
@@ -55,21 +78,21 @@ fun CarCareoNavGraph(
                 VehicleShellScreen(
                     vehicleId = id,
                     initialTab = tab,
-                    onBack = navController::popBackStack,
-                    onEditVehicle = { navController.navigate(Destinations.vehicleFormEdit(it)) },
+                    onBack = { navController.popFrom(entry) },
+                    onEditVehicle = { navController.navigateFrom(entry, Destinations.vehicleFormEdit(it)) },
                     onLogMaintenance = { vId, taskId ->
-                        navController.navigate(Destinations.logMaintenance(vId, taskId))
+                        navController.navigateFrom(entry, Destinations.logMaintenance(vId, taskId))
                     },
                     onEditRecord = { vId, recordId ->
-                        navController.navigate(Destinations.recordEdit(vId, recordId))
+                        navController.navigateFrom(entry, Destinations.recordEdit(vId, recordId))
                     },
                 )
             }
         }
 
-        composable(Destinations.VEHICLE_FORM_NEW) {
+        composable(Destinations.VEHICLE_FORM_NEW) { entry ->
             VehicleFormScreen(
-                onBack = navController::popBackStack,
+                onBack = { navController.popFrom(entry) },
                 onSaved = { id ->
                     // New vehicle -> plan setup step, then its detail. Drop the form
                     // and the setup screen from the back stack so Back goes to the garage.
@@ -84,15 +107,20 @@ fun CarCareoNavGraph(
             PlanSetupScreen(
                 vehicleId = id,
                 onDone = {
-                    navController.popBackStack()
-                    navController.navigate(Destinations.vehicleDetail(id))
+                    if (entry.isResumed()) {
+                        navController.popBackStack()
+                        navController.navigate(Destinations.vehicleDetail(id))
+                    }
                 },
             )
         }
 
-        composable(Destinations.VEHICLE_FORM_EDIT, arguments = vehicleIdArg) {
+        composable(Destinations.VEHICLE_FORM_EDIT, arguments = vehicleIdArg) { entry ->
             VehicleFormScreen(
-                onBack = navController::popBackStack,
+                onBack = { navController.popFrom(entry) },
+                // Not lifecycle-guarded: a save finishes asynchronously and must
+                // close the form even if the app was backgrounded meanwhile. The
+                // ViewModel's own `saving` flag is what stops a double save.
                 onSaved = { navController.popBackStack() },
             )
         }
@@ -106,8 +134,8 @@ fun CarCareoNavGraph(
         ) { entry ->
             LogMaintenanceScreen(
                 vehicleId = entry.vehicleId(),
-                onBack = navController::popBackStack,
-                onSaved = navController::popBackStack,
+                onBack = { navController.popFrom(entry) },
+                onSaved = { navController.popBackStack() },
             )
         }
 
@@ -119,19 +147,19 @@ fun CarCareoNavGraph(
         ) { entry ->
             LogMaintenanceScreen(
                 vehicleId = entry.vehicleId(),
-                onBack = navController::popBackStack,
-                onSaved = navController::popBackStack,
+                onBack = { navController.popFrom(entry) },
+                onSaved = { navController.popBackStack() },
             )
         }
 
-        composable(Destinations.ARCHIVED) {
-            ArchivedVehiclesScreen(onBack = navController::popBackStack)
+        composable(Destinations.ARCHIVED) { entry ->
+            ArchivedVehiclesScreen(onBack = { navController.popFrom(entry) })
         }
 
-        composable(Destinations.SETTINGS) {
+        composable(Destinations.SETTINGS) { entry ->
             SettingsScreen(
-                onBack = navController::popBackStack,
-                onOpenArchived = { navController.navigate(Destinations.ARCHIVED) },
+                onBack = { navController.popFrom(entry) },
+                onOpenArchived = { navController.navigateFrom(entry, Destinations.ARCHIVED) },
             )
         }
     }
@@ -141,3 +169,19 @@ private fun NavBackStackEntry.vehicleId(): Long =
     checkNotNull(arguments?.getLong(Destinations.VEHICLE_ID_ARG)) {
         "Missing ${Destinations.VEHICLE_ID_ARG} argument"
     }
+
+/**
+ * True while [this] is the settled, on-screen destination. As soon as a
+ * navigation away from it starts it drops below RESUMED, which is exactly the
+ * window in which a repeated tap has to be ignored.
+ */
+private fun NavBackStackEntry.isResumed(): Boolean =
+    lifecycle.currentState == Lifecycle.State.RESUMED
+
+private fun NavHostController.navigateFrom(from: NavBackStackEntry, route: String) {
+    if (from.isResumed()) navigate(route)
+}
+
+private fun NavHostController.popFrom(from: NavBackStackEntry) {
+    if (from.isResumed()) popBackStack()
+}

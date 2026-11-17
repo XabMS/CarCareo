@@ -31,6 +31,16 @@ class AppPreferences(context: Context) {
         get() = prefs.getLong(KEY_LAST_EXPORT, 0L)
         set(value) = prefs.edit { putLong(KEY_LAST_EXPORT, value) }
 
+    /**
+     * ISO 4217 code costs are shown in, or null to follow the device locale
+     * (whose currency is not necessarily the one the user pays workshops in).
+     */
+    var currencyCode: String?
+        get() = prefs.getString(KEY_CURRENCY, null)
+        set(value) = prefs.edit {
+            if (value == null) remove(KEY_CURRENCY) else putString(KEY_CURRENCY, value)
+        }
+
     /** Emits the current toggles and every later change. */
     fun observe(): Flow<NotificationPrefs> = callbackFlow {
         trySend(current())
@@ -62,6 +72,13 @@ class AppPreferences(context: Context) {
         }
     }
 
+    fun clearAlert(vehicleId: Long) {
+        prefs.edit {
+            remove(alertDayKey(vehicleId))
+            remove(alertStatusKey(vehicleId))
+        }
+    }
+
     private fun alertDayKey(id: Long) = "alert_day_$id"
     private fun alertStatusKey(id: Long) = "alert_status_$id"
 
@@ -69,6 +86,7 @@ class AppPreferences(context: Context) {
         private const val KEY_MAINTENANCE_ALERTS = "notif_maintenance_alerts"
         private const val KEY_ODOMETER_REMINDER = "notif_odometer_reminder"
         private const val KEY_LAST_EXPORT = "last_export_at"
+        private const val KEY_CURRENCY = "currency_code"
     }
 }
 

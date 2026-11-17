@@ -166,4 +166,38 @@ class PlanStatusCalculatorTest {
         assertEquals(1, status.activeOrdered.size)
         assertEquals(listOf(2L), status.inactive.map { it.id })
     }
+
+    // Without a purchase date the baseline is the vehicle's FIRST reading. It used
+    // to be the last confirmed one, which moves with every odometer update — so a
+    // never-done task's due point kept running ahead of the car and the task
+    // could never become overdue.
+    @Test
+    fun `baseline without purchase date is the first reading and does not slide`() {
+        val firstDate = today.minusYears(2)
+        val v = vehicle(lastKm = 30_000, lastDate = today, annual = 12_000)
+            .copy(initialKm = 500, initialKmDate = firstDate)
+
+        assertEquals(BaselineRef(date = firstDate, km = 500), PlanStatusCalculator.baselineFor(v))
+
+        val status = PlanStatusCalculator.forVehicle(
+            vehicle = v,
+            tasks = listOf(task(1, km = 15_000)),
+            records = emptyList(),
+            today = today,
+        )
+        val comp = status.activeOrdered.single().computation
+        assertEquals(15_500, comp.dueKm)
+        assertEquals(TaskStatus.OVERDUE, comp.status)
+
+        // A later odometer update must not move the due point.
+        val updated = v.copy(lastConfirmedKm = 31_000, lastConfirmedKmDate = today)
+        assertEquals(PlanStatusCalculator.baselineFor(v), PlanStatusCalculator.baselineFor(updated))
+    }
+
+    @Test
+    fun `purchase date still wins over the first reading`() {
+        val v = vehicle(lastKm = 30_000, lastDate = today, annual = 12_000, purchaseDate = today.minusYears(1))
+            .copy(initialKm = 29_000, initialKmDate = today.minusMonths(1))
+        assertEquals(today.minusYears(1), PlanStatusCalculator.baselineFor(v).date)
+    }
 }

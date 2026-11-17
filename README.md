@@ -74,13 +74,13 @@ plan and record to one JSON file. Import it on another device to replace or merg
 
 | Area | What you get |
 |---|---|
-| **Garage** | Several vehicles at a glance, each with a status light and next-task summary. Archive vehicles you no longer own without losing their history. |
+| **Garage** | Several vehicles at a glance, each with a status light and next-task summary. Archive vehicles you no longer own without losing their history, or delete an archived one for good. |
 | **Odometer** | Quick "update km", forward estimation between readings, and a guard against accidental large rollbacks. |
 | **Maintenance plan** | Per-vehicle tasks with km / month intervals and an optional "warn me X km / days before". Built-in templates per vehicle type; duplicate or start empty. |
 | **Computed status** | Overdue / upcoming / OK derived from records + odometer, never persisted. |
 | **Logging** | One-screen interventions, pre-filled and pre-checked. Free-form records allowed. Optional cost, workshop, notes, invoice file. |
-| **History & costs** | Timeline per vehicle, filter by task, total and last-12-months spend. |
-| **Reminders** | Optional weekly maintenance check (one notification per vehicle) and a monthly odometer nudge. Both off by default. |
+| **History & costs** | Timeline per vehicle, filter by task, total and last-12-months spend, in the currency you choose. |
+| **Reminders** | Optional daily maintenance check (one notification per vehicle, repeated weekly while nothing changes; tapping it opens that vehicle) and a monthly odometer nudge. Both off by default. |
 | **Backup** | Full export / import as a single JSON file (replace or merge). |
 | **Bilingual** | Spanish / English, following the device language. Units: km and months. |
 
@@ -140,9 +140,10 @@ and lint on every push and pull request.
   behaviour** and its decisions are fixed.
 - Task state is computed, never persisted.
 - Local-only by design: `allowBackup=false`, no cloud sync. The database has a
-  versioned Room migration path (currently schema v2), verified by an
-  instrumented `MigrationTest`; any future schema change needs its own
-  `Migration` and test.
+  versioned Room migration path (currently schema v3). `Migration2To3Test`
+  runs on the JVM with the unit tests (and so in CI); the older 1 -> 2 step is
+  covered by the instrumented `MigrationTest`. Any future schema change needs
+  its own `Migration` and test.
 
 ## License
 

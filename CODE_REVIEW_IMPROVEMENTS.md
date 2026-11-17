@@ -29,48 +29,56 @@ Every correctness, data-integrity, and test-coverage item from the original revi
 
 ## 2. Remaining Polish
 
-### 2.1 Notification ID can overflow
+### 2.1 Split oversized screens
 
-**Problem**
-`Notifications.kt:77` generates the per-vehicle notification id with:
-
-```kotlin
-nm.notify(VEHICLE_ID_OFFSET + vehicleId.toInt(), perVehicle)
-```
-
-`vehicleId` is a `Long`. After many add/delete cycles the id can exceed `Int.MAX_VALUE - VEHICLE_ID_OFFSET`, causing collisions or negative notification ids.
-
-**Suggested fix**
-Use a stable hash-based id, e.g.:
-
-```kotlin
-val notificationId = VEHICLE_ID_OFFSET + vehicleId.hashCode()
-nm.notify(notificationId, perVehicle)
-```
-
-or maintain a small integer mapping in `AppPreferences`.
-
-**Files to change**
-- `app/src/main/java/com/xabier/carcareo/notifications/Notifications.kt`
-
-*Technically correct, but on a personal single-user app this would take billions of vehicle inserts (Room's autoincrement id) to actually collide — negligible real-world risk. Fine to fold in with other polish work rather than treat as urgent.*
-
-### 2.2 Split oversized screens
-
-Several screens are 300–500 lines long. Consider extracting private composables for readability and `@Preview` support:
+Several screens are 300–600 lines long. Consider extracting private composables for readability and `@Preview` support:
 - `GarageScreen.kt`
 - `VehicleFormScreen.kt`
 - `PlanEditorScreen.kt`
 - `SettingsScreen.kt`
 - `VehicleDetailScreen.kt`
 
-### 2.3 Accessibility
+### 2.2 Accessibility
 
 Some icon buttons use `contentDescription = null` (e.g. in `HistoryScreen.kt`). Add meaningful descriptions for screen readers.
 
-### 2.4 Notification deep link
+---
 
-Tapping a maintenance notification currently opens the app at the garage. Consider passing the `vehicleId` in the `PendingIntent` and navigating directly to that vehicle.
+## 2b. Second review (2026-11-17) — all fixed
+
+**Bugs**
+- Vehicle form had no double-tap guard: two quick taps on Save inserted the vehicle twice.
+- Tasks with no history could never become overdue on a vehicle without a purchase date: their baseline was the *last* confirmed odometer, which moves with every update. The vehicle now stores its first reading (`Vehicle.initialKm` / `initialKmDate`, schema v3, `MIGRATION_2_3`) and that is the baseline.
+- The "large km decrease" confirmation fired when logging or editing *old* work. It now only applies to a record that is not older than the confirmed reading.
+- Maintenance alerts were only checked weekly, which made `AlertDedup` a no-op and could delay an alert by a week. The check is now daily; the dedup limits repeats to weekly. Its memory is cleared when a vehicle is back to OK, when work is logged, and when the vehicle is archived or deleted.
+- Switching the odometer reminder on fired it immediately (missing initial delay).
+- "Update odometer" accepted a date older than the stored reading.
+- A double tap on Back could pop the garage too and leave a blank screen; double taps on a card opened it twice. Navigation is now guarded by the source entry's lifecycle.
+- Moving the record that confirmed the odometer to an older date left the vehicle on that old date; it now falls back to the newest record.
+
+**Validation**
+- Vehicle form: future reading / purchase date, purchase after reading, and an unconfirmed large km decrease when editing.
+- Plan editor: an interval too large to parse is an error instead of "no interval".
+- Backup import: future dates, negative warning margins and negative costs are rejected.
+- A failed record save no longer crashes; the form stays and shows a message.
+
+**Cleanup**
+- CI no longer runs twice per PR commit; the new migration test runs on the JVM, so it is in CI.
+- Export reads everything in one transaction with three queries instead of two per vehicle.
+- `setArchived` / `confirmOdometer` are targeted `UPDATE`s.
+- History's 12-month cost uses `todayFlow()`.
+- SAF read grants are released once no record references the attachment.
+- Notification id can no longer overflow.
+
+**Features**
+- Delete a vehicle permanently (from Archived vehicles).
+- The km field of a new record follows the picked date until typed, and is labelled as an estimate.
+- Date pickers no longer offer future days (one shared dialog).
+- Tapping a maintenance notification opens that vehicle; the notification is cancelled when stale.
+- A denied notification permission switches the reminder toggles back off.
+- A half-filled record survives process death (`SavedStateHandle`).
+- Currency setting for costs.
+- An ADD import warns when vehicle names already exist.
 
 ---
 
@@ -80,4 +88,5 @@ Tapping a maintenance notification currently opens the app at the garage. Consid
 - Line numbers refer to the codebase as of the original review date and may have shifted after the fixes described above.
 - The project already enforces `HardcodedText` as a lint error, so any new UI strings must be added to `res/values/strings.xml` and `res/values-es/strings.xml`.
 - **Dropped from scope**: worker dependency-injection cleanup (`MaintenanceCheckWorker`/`OdometerReminderWorker` casting `applicationContext` to `CarCareoApp` instead of going through a `WorkerFactory`). Real inconsistency, no active bug, and one of the review's own suggested fixes (passing repositories through `WorkerParameters`) doesn't actually work as written (input data must be primitives/strings) — not worth the `WorkerFactory` boilerplate for two workers right now.
+- **Not verified on a device**: the second review's changes were compiled, linted and unit-tested (Robolectric), but the instrumented tests and the UI itself were not run on an emulator or phone.
 - **Test infrastructure added**: Robolectric (`app/src/test`) is now used alongside the existing pure-domain tests to exercise ViewModels and repositories against a real in-memory Room DB — see `LogMaintenanceViewModelTest`, `PlanEditorViewModelTest`, `VehicleFormViewModelTest`, `MaintenanceRecordRepositoryTest`, `MaintenanceTaskRepositoryTest`. The Room migration test (`MigrationTest`) lives under `app/src/androidTest` instead, alongside the pre-existing `BackupRoundTripTest`, since `MigrationTestHelper` needs a real `Instrumentation` — CI only runs the `app/src/test` suite, so this one test still needs a manual `connectedDebugAndroidTest` run to re-verify after any future schema change.

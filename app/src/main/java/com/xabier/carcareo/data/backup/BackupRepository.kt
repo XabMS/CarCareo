@@ -2,6 +2,7 @@ package com.xabier.carcareo.data.backup
 
 import androidx.room.withTransaction
 import com.xabier.carcareo.data.AppDatabase
+import com.xabier.carcareo.data.DataHooks
 import com.xabier.carcareo.data.entity.MaintenanceRecord
 import com.xabier.carcareo.data.entity.MaintenanceTask
 import com.xabier.carcareo.data.entity.RecordTaskCrossRef
@@ -27,7 +28,10 @@ enum class ImportMode {
  */
 data class ImportResult(val vehicles: Int, val unresolvedLinks: Int)
 
-class BackupRepository(private val db: AppDatabase) {
+class BackupRepository(
+    private val db: AppDatabase,
+    private val hooks: DataHooks = DataHooks.None,
+) {
 
     private val vehicleDao = db.vehicleDao()
     private val taskDao = db.maintenanceTaskDao()
@@ -36,7 +40,23 @@ class BackupRepository(private val db: AppDatabase) {
     // --- Export ---
 
     suspend fun exportJson(now: java.time.Instant = java.time.Instant.now()): String {
-        val vehicles = vehicleDao.getAll().map { v ->
+        // One transaction = one consistent snapshot: a save landing between two of
+        // these per-vehicle reads must not produce a file that never existed.
+        val vehicles = db.withTransaction { readVehicles() }
+        val file = BackupFile(
+            schemaVersion = BACKUP_SCHEMA_VERSION,
+            exportedAt = DateTimeFormatter.ISO_INSTANT.format(now.atZone(ZoneOffset.UTC)),
+            vehicles = vehicles,
+        )
+        return BackupCodec.encode(file)
+    }
+
+    private suspend fun readVehicles(): List<BackupVehicle> {
+        val tasksByVehicle = taskDao.getAll().groupBy { it.vehicleId }
+        // Oldest first, so a file reads top-to-bottom like a service book.
+        val recordsByVehicle = recordDao.getAllWithTasks().asReversed()
+            .groupBy { it.record.vehicleId }
+        return vehicleDao.getAll().map { v ->
             BackupVehicle(
                 name = v.name,
                 category = v.category.name,
@@ -48,9 +68,11 @@ class BackupRepository(private val db: AppDatabase) {
                 lastConfirmedKmDate = v.lastConfirmedKmDate.toString(),
                 annualKmEstimate = v.annualKmEstimate,
                 purchaseDate = v.purchaseDate?.toString(),
+                initialKm = v.initialKm,
+                initialKmDate = v.initialKmDate?.toString(),
                 notes = v.notes,
                 archived = v.archived,
-                tasks = taskDao.getForVehicle(v.id)
+                tasks = tasksByVehicle[v.id].orEmpty()
                     .sortedBy { it.sortOrder }
                     .map { t ->
                         BackupTask(
@@ -64,7 +86,7 @@ class BackupRepository(private val db: AppDatabase) {
                             sortOrder = t.sortOrder,
                         )
                     },
-                records = recordDao.getWithTasksForVehicle(v.id).map { rwt ->
+                records = recordsByVehicle[v.id].orEmpty().map { rwt ->
                     BackupRecord(
                         date = rwt.record.date.toString(),
                         odometerKm = rwt.record.odometerKm,
@@ -76,12 +98,6 @@ class BackupRepository(private val db: AppDatabase) {
                 },
             )
         }
-        val file = BackupFile(
-            schemaVersion = BACKUP_SCHEMA_VERSION,
-            exportedAt = DateTimeFormatter.ISO_INSTANT.format(now.atZone(ZoneOffset.UTC)),
-            vehicles = vehicles,
-        )
-        return BackupCodec.encode(file)
     }
 
     // --- Import ---
@@ -93,15 +109,38 @@ class BackupRepository(private val db: AppDatabase) {
     suspend fun importJson(text: String, mode: ImportMode): ImportResult {
         val backup = BackupCodec.decode(text)   // throws before any write
         var unresolvedLinks = 0
+        var replacedVehicleIds = emptyList<Long>()
+        var orphanedAttachments = emptyList<String>()
         db.withTransaction {
+            // Reset per attempt: Room may re-run this block.
+            unresolvedLinks = 0
             if (mode == ImportMode.REPLACE) {
+                replacedVehicleIds = vehicleDao.getAll().map { it.id }
+                // Imported records never carry attachments, so every URI goes.
+                orphanedAttachments = recordDao.attachmentUris(null)
                 vehicleDao.deleteAll()
             }
             for (bv in backup.vehicles) {
                 unresolvedLinks += writeVehicle(bv)
             }
         }
+        orphanedAttachments.forEach(hooks::onAttachmentUnused)
+        replacedVehicleIds.forEach(hooks::onVehicleAlertStale)
         return ImportResult(vehicles = backup.vehicles.size, unresolvedLinks = unresolvedLinks)
+    }
+
+    /**
+     * Names in the file that an existing vehicle already uses (case-insensitive),
+     * in file order. An ADD import of such a file is most likely the same backup
+     * imported twice, so the UI asks before duplicating. Throws [BackupException]
+     * for an invalid file, exactly like [importJson].
+     */
+    suspend fun namesAlreadyPresent(text: String): List<String> {
+        val backup = BackupCodec.decode(text)
+        val existing = vehicleDao.getNames().mapTo(HashSet()) { it.trim().lowercase() }
+        return backup.vehicles.map { it.name.trim() }
+            .filter { it.lowercase() in existing }
+            .distinct()
     }
 
     /** Returns the number of record task-name references that couldn't be resolved. */
@@ -118,6 +157,10 @@ class BackupRepository(private val db: AppDatabase) {
                 lastConfirmedKmDate = LocalDate.parse(bv.lastConfirmedKmDate),
                 annualKmEstimate = bv.annualKmEstimate,
                 purchaseDate = bv.purchaseDate?.let(LocalDate::parse),
+                // Files written before these fields existed: fall back to the
+                // confirmed reading, as the 2 -> 3 database migration does.
+                initialKm = bv.initialKm ?: bv.lastConfirmedKm,
+                initialKmDate = LocalDate.parse(bv.initialKmDate ?: bv.lastConfirmedKmDate),
                 notes = bv.notes,
                 archived = bv.archived,
             ),

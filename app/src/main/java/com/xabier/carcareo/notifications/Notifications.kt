@@ -44,14 +44,35 @@ object Notifications {
         )
     }
 
-    private fun contentIntent(context: Context): PendingIntent {
+    /** Intent extra: the vehicle a maintenance alert is about. See [vehicleIdFrom]. */
+    private const val EXTRA_VEHICLE_ID = "com.xabier.carcareo.extra.VEHICLE_ID"
+
+    /**
+     * Opens the app; with a [vehicleId], straight on that vehicle. The request
+     * code is per vehicle: PendingIntents that differ only in their extras are
+     * the same PendingIntent to the system, so sharing one code would make every
+     * notification open whichever vehicle was posted last.
+     */
+    private fun contentIntent(context: Context, vehicleId: Long? = null): PendingIntent {
         val intent = Intent(context, MainActivity::class.java)
             .addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        if (vehicleId != null) intent.putExtra(EXTRA_VEHICLE_ID, vehicleId)
         return PendingIntent.getActivity(
-            context, 0, intent,
+            context, if (vehicleId != null) notificationId(vehicleId) else 0, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )
     }
+
+    /** The vehicle a tapped maintenance alert points at, or null for any other launch. */
+    fun vehicleIdFrom(intent: Intent?): Long? =
+        intent?.getLongExtra(EXTRA_VEHICLE_ID, -1L)?.takeIf { it > 0 }
+
+    /** Stable, always-positive id that can never collide with the fixed ids above. */
+    private fun notificationId(vehicleId: Long): Int =
+        VEHICLE_ID_OFFSET + (vehicleId % (Int.MAX_VALUE - VEHICLE_ID_OFFSET)).toInt()
+
+    fun canPost(context: Context): Boolean =
+        NotificationManagerCompat.from(context).areNotificationsEnabled()
 
     /** One notification per vehicle plus a group summary. Caller checks the runtime permission. */
     fun postMaintenanceAlert(context: Context, vehicleId: Long, vehicleName: String, line: String) {
@@ -62,7 +83,7 @@ object Notifications {
             .setContentText(line)
             .setStyle(NotificationCompat.BigTextStyle().bigText(line))
             .setGroup(GROUP_MAINTENANCE)
-            .setContentIntent(contentIntent(context))
+            .setContentIntent(contentIntent(context, vehicleId))
             .setAutoCancel(true)
             .build()
         val summary = NotificationCompat.Builder(context, CHANNEL_MAINTENANCE)
@@ -74,11 +95,25 @@ object Notifications {
             .setAutoCancel(true)
             .build()
         try {
-            nm.notify(VEHICLE_ID_OFFSET + vehicleId.toInt(), perVehicle)
+            nm.notify(notificationId(vehicleId), perVehicle)
             nm.notify(SUMMARY_ID, summary)
         } catch (_: SecurityException) {
             // Permission revoked between the check and here; nothing to do.
         }
+    }
+
+    /**
+     * Removes a vehicle's maintenance alert, and the group summary with it once
+     * no other vehicle's alert is left for it to summarise.
+     */
+    fun cancelMaintenanceAlert(context: Context, vehicleId: Long) {
+        val id = notificationId(vehicleId)
+        NotificationManagerCompat.from(context).cancel(id)
+        val manager = context.getSystemService<NotificationManager>() ?: return
+        val othersLeft = manager.activeNotifications.any {
+            it.id != id && it.id != SUMMARY_ID && it.notification.group == GROUP_MAINTENANCE
+        }
+        if (!othersLeft) manager.cancel(SUMMARY_ID)
     }
 
     fun postOdometerReminder(context: Context) {

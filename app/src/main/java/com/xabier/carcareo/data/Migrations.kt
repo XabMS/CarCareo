@@ -39,3 +39,20 @@ object MIGRATION_1_2 : Migration(1, 2) {
         )
     }
 }
+
+/**
+ * Adds the frozen "first reading" columns on `vehicle` (see `Vehicle.initialKm`).
+ * The true first reading of an existing vehicle is no longer known, so it is
+ * back-filled with the best fact available: the current confirmed odometer.
+ * From here on it stays put, which is the point of the columns.
+ */
+object MIGRATION_2_3 : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `vehicle` ADD COLUMN `initialKm` INTEGER")
+        db.execSQL("ALTER TABLE `vehicle` ADD COLUMN `initialKmDate` TEXT")
+        db.execSQL(
+            "UPDATE `vehicle` SET `initialKm` = `lastConfirmedKm`, " +
+                "`initialKmDate` = `lastConfirmedKmDate`",
+        )
+    }
+}

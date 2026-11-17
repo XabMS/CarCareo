@@ -32,20 +32,20 @@ import com.xabier.carcareo.ui.icon.Event
 import com.xabier.carcareo.ui.icon.Remove
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -62,7 +62,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.xabier.carcareo.R
 import com.xabier.carcareo.domain.KmChangeSeverity
-import com.xabier.carcareo.domain.OdometerUpdate
 import com.xabier.carcareo.domain.TaskStatus
 import com.xabier.carcareo.ui.AppViewModelProvider
 import com.xabier.carcareo.ui.component.FieldHelper
@@ -72,6 +71,7 @@ import com.xabier.carcareo.ui.component.LabeledField
 import com.xabier.carcareo.ui.component.LedgerAppBar
 import com.xabier.carcareo.ui.component.LedgerCard
 import com.xabier.carcareo.ui.component.LedgerCardShape
+import com.xabier.carcareo.ui.component.LedgerDatePickerDialog
 import com.xabier.carcareo.ui.component.LedgerIconButton
 import com.xabier.carcareo.ui.component.LedgerPrimaryButton
 import com.xabier.carcareo.ui.component.LedgerSecondaryButton
@@ -86,9 +86,7 @@ import com.xabier.carcareo.ui.plan.textColor
 import com.xabier.carcareo.ui.theme.LedgerText
 import com.xabier.carcareo.ui.theme.extraColors
 import com.xabier.carcareo.ui.upcase
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
 
 /**
  * P3 — the most important screen. Must be closeable in under 30 seconds:
@@ -124,8 +122,18 @@ fun LogMaintenanceScreen(
 
     val sep = stringResource(R.string.remaining_separator)
 
+    val snackbar = remember { SnackbarHostState() }
+    val saveFailedMsg = stringResource(R.string.error_save_failed)
+    LaunchedEffect(state.saveFailed) {
+        if (state.saveFailed) {
+            snackbar.showSnackbar(saveFailedMsg)
+            viewModel.consumeSaveFailed()
+        }
+    }
+
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             LedgerAppBar(
                 title = stringResource(
@@ -142,7 +150,14 @@ fun LogMaintenanceScreen(
                 },
             )
         },
-        bottomBar = { LogFooter(state.odometer, saving = state.saving, onSave = { viewModel.save(onSaved) }) },
+        bottomBar = {
+            LogFooter(
+                // Only promise an odometer update when saving would really make one.
+                confirmsKm = state.odometer.toIntOrNull()?.takeIf { state.confirmsOdometer },
+                saving = state.saving,
+                onSave = { viewModel.save(onSaved) },
+            )
+        },
     ) { padding ->
         if (state.loading) {
             Box(Modifier.fillMaxSize().padding(padding))
@@ -158,8 +173,7 @@ fun LogMaintenanceScreen(
                 .padding(top = 12.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            val km = state.odometer.toIntOrNull()
-            val severity = km?.let { OdometerUpdate.classify(state.lastConfirmedKm, it) }
+            val severity = state.kmSeverity
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 DateBox(
                     label = stringResource(R.string.log_date),
@@ -181,7 +195,12 @@ fun LogMaintenanceScreen(
                             stringResource(R.string.update_km_warn_minor, formatNumber(state.lastConfirmedKm))
                         KmChangeSeverity.MAJOR_DECREASE ->
                             stringResource(R.string.update_km_warn_major, formatNumber(state.lastConfirmedKm))
-                        else -> null
+                        // Not a reading yet, just the app's guess for that date.
+                        else -> if (state.odometerIsEstimate) {
+                            stringResource(R.string.log_odometer_estimated)
+                        } else {
+                            null
+                        }
                     },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     textStyle = LedgerText.rowMeta.copy(
@@ -317,7 +336,7 @@ fun LogMaintenanceScreen(
 }
 
 @Composable
-private fun LogFooter(odometer: String, saving: Boolean, onSave: () -> Unit) {
+private fun LogFooter(confirmsKm: Int?, saving: Boolean, onSave: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -337,11 +356,10 @@ private fun LogFooter(odometer: String, saving: Boolean, onSave: () -> Unit) {
                 enabled = !saving,
                 modifier = Modifier.fillMaxWidth(),
             )
-            val km = odometer.toIntOrNull()
-            if (km != null && km > 0) {
+            if (confirmsKm != null && confirmsKm > 0) {
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    stringResource(R.string.log_confirms_odometer, formatNumber(km)),
+                    stringResource(R.string.log_confirms_odometer, formatNumber(confirmsKm)),
                     style = LedgerText.supporting,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -398,26 +416,11 @@ private fun DateBox(
     }
 
     if (showDialog) {
-        val initialMillis = value.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-        val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
-        DatePickerDialog(
-            onDismissRequest = { showDialog = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { millis ->
-                        onValueChange(
-                            Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate(),
-                        )
-                    }
-                    showDialog = false
-                }) { Text(stringResource(R.string.action_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
-        ) { DatePicker(state = pickerState) }
+        LedgerDatePickerDialog(
+            initial = value,
+            onPicked = onValueChange,
+            onDismiss = { showDialog = false },
+        )
     }
 }
 

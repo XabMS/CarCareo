@@ -37,4 +37,14 @@ class AlertDedupTest {
         assertFalse(AlertDedup.shouldNotify(TaskStatus.OVERDUE, "OVERDUE", lastEpochDay = 100, todayEpochDay = 106))
         assertTrue(AlertDedup.shouldNotify(TaskStatus.OVERDUE, "OVERDUE", lastEpochDay = 100, todayEpochDay = 107))
     }
+
+    @Test
+    fun `never notified counts as stale without overflowing`() {
+        // Long.MIN_VALUE is the "never" marker; today - MIN_VALUE overflows negative.
+        assertTrue(
+            AlertDedup.shouldNotify(
+                TaskStatus.OVERDUE, "OVERDUE", lastEpochDay = Long.MIN_VALUE, todayEpochDay = 20_000,
+            ),
+        )
+    }
 }

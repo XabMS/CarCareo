@@ -37,6 +37,16 @@ interface MaintenanceRecordDao {
     @Query("SELECT * FROM maintenance_record WHERE vehicleId = :vehicleId ORDER BY date DESC, id DESC")
     suspend fun getForVehicle(vehicleId: Long): List<MaintenanceRecord>
 
+    @Query("SELECT COUNT(*) FROM maintenance_record WHERE attachmentUri = :uri")
+    suspend fun countWithAttachment(uri: String): Int
+
+    /** Distinct attachment URIs of one vehicle's records, or of every record when null. */
+    @Query(
+        "SELECT DISTINCT attachmentUri FROM maintenance_record " +
+            "WHERE attachmentUri IS NOT NULL AND (:vehicleId IS NULL OR vehicleId = :vehicleId)",
+    )
+    suspend fun attachmentUris(vehicleId: Long?): List<String>
+
     @Insert
     suspend fun insert(record: MaintenanceRecord): Long
 

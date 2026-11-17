@@ -85,4 +85,20 @@ class OdometerConfirmationTest {
         val deleted = RecordReading(km = 50_000, date = day)
         assertNull(OdometerConfirmation.rollbackAfterDelete(deleted, confirmed, null))
     }
+
+    @Test
+    fun `newest picks the latest date and on a tie the higher odometer`() {
+        val d = LocalDate.of(2026, 5, 1)
+        assertEquals(null, OdometerConfirmation.newest(emptyList()))
+        assertEquals(
+            RecordReading(km = 52_000, date = d.plusDays(1)),
+            OdometerConfirmation.newest(
+                listOf(
+                    RecordReading(km = 90_000, date = d),
+                    RecordReading(km = 51_000, date = d.plusDays(1)),
+                    RecordReading(km = 52_000, date = d.plusDays(1)),
+                ),
+            ),
+        )
+    }
 }

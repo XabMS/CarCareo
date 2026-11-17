@@ -1,5 +1,6 @@
 package com.xabier.carcareo.data.repository
 
+import com.xabier.carcareo.data.DataHooks
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.xabier.carcareo.data.AppDatabase
@@ -120,5 +121,57 @@ class MaintenanceRecordRepositoryTest {
         val vehicle = db.vehicleDao().get(vehicleId)!!
         assertEquals(51_000, vehicle.lastConfirmedKm)
         assertEquals(LocalDate.of(2026, 6, 10), vehicle.lastConfirmedKmDate)
+    }
+
+    @Test
+    fun `moving the source record back in time falls back to the newest record`() = runTest {
+        repository.save(
+            MaintenanceRecord(vehicleId = vehicleId, date = LocalDate.of(2026, 6, 10), odometerKm = 51_000),
+            emptyList(),
+        )
+        val source = MaintenanceRecord(vehicleId = vehicleId, date = LocalDate.of(2026, 7, 1), odometerKm = 52_000)
+        val sourceId = repository.save(source, emptyList())
+        assertEquals(52_000, db.vehicleDao().get(vehicleId)!!.lastConfirmedKm)
+
+        // The July record was really done in May: the June one is now the newest.
+        repository.save(
+            source.copy(id = sourceId, date = LocalDate.of(2026, 5, 1), odometerKm = 49_500),
+            emptyList(),
+        )
+
+        val vehicle = db.vehicleDao().get(vehicleId)!!
+        assertEquals(51_000, vehicle.lastConfirmedKm)
+        assertEquals(LocalDate.of(2026, 6, 10), vehicle.lastConfirmedKmDate)
+    }
+
+    @Test
+    fun `attachment grant is released only once no record uses it`() = runTest {
+        val released = mutableListOf<String>()
+        val staleAlerts = mutableListOf<Long>()
+        val hooked = MaintenanceRecordRepository(
+            db,
+            object : DataHooks {
+                override fun onAttachmentUnused(uri: String) { released += uri }
+                override fun onVehicleAlertStale(vehicleId: Long) { staleAlerts += vehicleId }
+            },
+        )
+        val a = MaintenanceRecord(
+            vehicleId = vehicleId, date = LocalDate.of(2026, 6, 2), odometerKm = 50_100,
+            attachmentUri = "content://invoice/1",
+        )
+        val b = a.copy(date = LocalDate.of(2026, 6, 3), odometerKm = 50_200)
+        val aId = hooked.save(a, emptyList())
+        val bId = hooked.save(b, emptyList())
+        assertEquals(listOf(vehicleId, vehicleId), staleAlerts)
+
+        hooked.delete(a.copy(id = aId))
+        assertEquals(emptyList<String>(), released) // b still points at it
+
+        // Replacing b's attachment orphans the old one.
+        hooked.save(b.copy(id = bId, attachmentUri = "content://invoice/2"), emptyList())
+        assertEquals(listOf("content://invoice/1"), released)
+
+        hooked.delete(b.copy(id = bId, attachmentUri = "content://invoice/2"))
+        assertEquals(listOf("content://invoice/1", "content://invoice/2"), released)
     }
 }

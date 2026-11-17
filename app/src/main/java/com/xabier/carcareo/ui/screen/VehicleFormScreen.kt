@@ -1,5 +1,10 @@
 package com.xabier.carcareo.ui.screen
 
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.material3.Checkbox
+import com.xabier.carcareo.ui.format.formatNumber
+import com.xabier.carcareo.domain.KmChangeSeverity
+import com.xabier.carcareo.ui.component.LedgerDatePickerDialog
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,23 +30,19 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import com.xabier.carcareo.ui.icon.Event
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,9 +72,7 @@ import com.xabier.carcareo.ui.theme.extraColors
 import com.xabier.carcareo.ui.upcase
 import com.xabier.carcareo.ui.vehicle.VehicleFormViewModel
 import com.xabier.carcareo.ui.vehicle.icon
-import java.time.Instant
 import java.time.LocalDate
-import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,17 +88,28 @@ fun VehicleFormScreen(
     val nameMissing = stringResource(R.string.error_name_required)
     val kmInvalid = stringResource(R.string.error_km_invalid)
     val fixErrors = stringResource(R.string.form_fix_errors)
+    val dateFuture = stringResource(R.string.error_date_future)
+    val purchaseInvalid = stringResource(R.string.error_purchase_date)
+    val confirmLower = stringResource(R.string.form_confirm_lower_km)
     LaunchedEffect(state.submitCount) {
         if (state.submitCount == 0) return@LaunchedEffect
-        if (state.nameError || state.kmError) {
-            scrollState.animateScrollTo(0)
-            snackbar.showSnackbar(
-                when {
-                    state.nameError && state.kmError -> fixErrors
-                    state.nameError -> nameMissing
-                    else -> kmInvalid
-                },
-            )
+        val errors = listOf(state.nameError, state.kmError, state.readDateError, state.purchaseDateError)
+        when {
+            errors.count { it } > 1 -> {
+                scrollState.animateScrollTo(0)
+                snackbar.showSnackbar(fixErrors)
+            }
+            state.nameError -> {
+                scrollState.animateScrollTo(0)
+                snackbar.showSnackbar(nameMissing)
+            }
+            state.kmError -> snackbar.showSnackbar(kmInvalid)
+            state.readDateError -> snackbar.showSnackbar(dateFuture)
+            state.purchaseDateError -> snackbar.showSnackbar(purchaseInvalid)
+            // Nothing invalid, yet the save was held back: the lower reading
+            // still needs its tick.
+            state.kmSeverity == KmChangeSeverity.MAJOR_DECREASE && !state.majorDecreaseConfirmed ->
+                snackbar.showSnackbar(confirmLower)
         }
     }
 
@@ -180,7 +190,10 @@ fun VehicleFormScreen(
                         FormDateRow(
                             label = stringResource(R.string.form_row_bought),
                             value = state.purchaseDate,
-                            onValueChange = { d -> viewModel.edit { it.copy(purchaseDate = d) } },
+                            onValueChange = { d ->
+                                viewModel.edit { it.copy(purchaseDate = d, purchaseDateError = false) }
+                            },
+                            isError = state.purchaseDateError,
                         )
                     }
                 }
@@ -204,7 +217,16 @@ fun VehicleFormScreen(
                         FormDateRow(
                             label = stringResource(R.string.form_row_read_on),
                             value = state.lastConfirmedKmDate,
-                            onValueChange = { d -> viewModel.edit { it.copy(lastConfirmedKmDate = d) } },
+                            onValueChange = { d ->
+                                viewModel.edit {
+                                    it.copy(
+                                        lastConfirmedKmDate = d,
+                                        readDateError = false,
+                                        purchaseDateError = false,
+                                    )
+                                }
+                            },
+                            isError = state.readDateError,
                         )
                         HairlineDivider()
                         FormTextRow(
@@ -218,6 +240,47 @@ fun VehicleFormScreen(
                         )
                     }
                     Spacer(Modifier.height(6.dp))
+                    // Edit only: lowering the stored reading gets the same warning
+                    // (and, when large, the same explicit tick) as "Update odometer".
+                    val previousKm = state.originalKm
+                    when (state.kmSeverity) {
+                        KmChangeSeverity.OK -> Unit
+                        KmChangeSeverity.MINOR_DECREASE -> if (previousKm != null) {
+                            Text(
+                                stringResource(R.string.update_km_warn_minor, formatNumber(previousKm)),
+                                style = LedgerText.supporting,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Spacer(Modifier.height(6.dp))
+                        }
+                        KmChangeSeverity.MAJOR_DECREASE -> if (previousKm != null) {
+                            Text(
+                                stringResource(R.string.update_km_warn_major, formatNumber(previousKm)),
+                                style = LedgerText.supporting,
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                            Row(
+                                Modifier
+                                    .fillMaxWidth()
+                                    .toggleable(
+                                        value = state.majorDecreaseConfirmed,
+                                        onValueChange = { c ->
+                                            viewModel.edit { it.copy(majorDecreaseConfirmed = c) }
+                                        },
+                                    ),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Checkbox(checked = state.majorDecreaseConfirmed, onCheckedChange = null)
+                                Spacer(Modifier.width(8.dp))
+                                Text(
+                                    stringResource(R.string.update_km_confirm_major),
+                                    style = LedgerText.supporting,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                )
+                            }
+                            Spacer(Modifier.height(6.dp))
+                        }
+                    }
                     Text(
                         stringResource(R.string.form_mileage_help),
                         style = LedgerText.supporting,
@@ -251,6 +314,7 @@ fun VehicleFormScreen(
                             if (state.isEdit) R.string.action_save else R.string.form_save_setup,
                         ),
                         onClick = { viewModel.save(onSaved) },
+                        enabled = !state.saving,
                         icon = if (state.isEdit) null else Icons.AutoMirrored.Filled.ArrowForward,
                         modifier = Modifier.fillMaxWidth(),
                     )
@@ -367,9 +431,11 @@ private fun FormDateRow(
     label: String,
     value: LocalDate?,
     onValueChange: (LocalDate) -> Unit,
+    isError: Boolean = false,
 ) {
     var showDialog by rememberSaveable { mutableStateOf(false) }
     val onVar = MaterialTheme.colorScheme.onSurfaceVariant
+    val error = MaterialTheme.colorScheme.error
     Row(
         Modifier
             .fillMaxWidth()
@@ -380,35 +446,30 @@ private fun FormDateRow(
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(label.upcase(), Modifier.width(78.dp), style = LedgerText.rowMeta, color = onVar)
+        Text(
+            label.upcase(),
+            Modifier.width(78.dp),
+            style = LedgerText.rowMeta,
+            color = if (isError) error else onVar,
+        )
         Text(
             value?.let { formatDate(it) } ?: stringResource(R.string.field_optional),
             Modifier.weight(1f),
             style = LedgerText.rowTitle,
-            color = if (value != null) MaterialTheme.colorScheme.onSurface else onVar,
+            color = when {
+                isError -> error
+                value != null -> MaterialTheme.colorScheme.onSurface
+                else -> onVar
+            },
         )
         Icon(Icons.Filled.Event, contentDescription = null, tint = onVar, modifier = Modifier.size(18.dp))
     }
 
     if (showDialog) {
-        val initialMillis = (value ?: LocalDate.now())
-            .atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-        val pickerState = rememberDatePickerState(initialSelectedDateMillis = initialMillis)
-        DatePickerDialog(
-            onDismissRequest = { showDialog = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { millis ->
-                        onValueChange(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
-                    }
-                    showDialog = false
-                }) { Text(stringResource(R.string.action_save)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text(stringResource(R.string.action_cancel))
-                }
-            },
-        ) { DatePicker(state = pickerState) }
+        LedgerDatePickerDialog(
+            initial = value,
+            onPicked = onValueChange,
+            onDismiss = { showDialog = false },
+        )
     }
 }

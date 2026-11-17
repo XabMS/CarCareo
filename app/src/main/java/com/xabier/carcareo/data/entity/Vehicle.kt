@@ -25,6 +25,15 @@ data class Vehicle(
     /** Used to estimate the current km between confirmations. Spec default: 12000. */
     val annualKmEstimate: Int = 12_000,
     val purchaseDate: LocalDate? = null,
+    /**
+     * The odometer reading the vehicle was first entered with, frozen at creation.
+     * It is the baseline for tasks with no history when there is no
+     * [purchaseDate] (spec 4.2). Unlike [lastConfirmedKm] it never moves, so a
+     * later odometer update cannot push those tasks' due points forward.
+     * Null only for rows that could not be back-filled.
+     */
+    val initialKm: Int? = null,
+    val initialKmDate: LocalDate? = null,
     val notes: String? = null,
     /** Sold vehicle: hidden from the garage but never deleted. */
     val archived: Boolean = false,

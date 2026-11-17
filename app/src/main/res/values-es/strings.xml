@@ -192,10 +192,10 @@
     <!-- Notificaciones (F6) -->
     <string name="settings_section_notifications">Recordatorios</string>
     <string name="settings_maintenance_alerts">Avisos de mantenimiento</string>
-    <string name="settings_maintenance_alerts_desc">Comprobación semanal; una notificación por vehículo cuando algo vence o está próximo.</string>
+    <string name="settings_maintenance_alerts_desc">Comprobación diaria; una notificación por vehículo cuando algo vence o está próximo, repetida cada semana mientras siga así.</string>
     <string name="settings_odometer_reminder">Recordatorio mensual de kilometraje</string>
     <string name="settings_odometer_reminder_desc">Un aviso para mantener el kilometraje al día.</string>
-    <string name="notif_permission_denied">Los recordatorios están activados, pero las notificaciones de la app están bloqueadas en los ajustes del sistema.</string>
+    <string name="notif_permission_denied">Se han desactivado los recordatorios: las notificaciones de la app están bloqueadas en los ajustes del sistema.</string>
 
     <string name="notif_channel_maintenance">Avisos de mantenimiento</string>
     <string name="notif_channel_maintenance_desc">Cuando un vehículo tiene una tarea vencida o próxima.</string>
@@ -328,4 +328,26 @@
         <item quantity="many">La última fue hace %1$s meses.</item>
         <item quantity="other">La última fue hace %1$s meses.</item>
     </plurals>
+
+    <!-- Seguimiento de la revisión: validaciones, borrado de vehículo, moneda, duplicados al importar -->
+    <string name="error_save_failed">No se pudo guardar el registro. Revisa las tareas marcadas e inténtalo de nuevo.</string>
+    <string name="log_odometer_estimated">Estimado para esa fecha: compruébalo con la lectura real.</string>
+    <string name="error_purchase_date">La fecha de compra no puede ser futura ni posterior a la fecha de lectura</string>
+    <string name="form_confirm_lower_km">Marca la casilla para confirmar la lectura más baja</string>
+    <string name="error_date_before_last_reading">Elige una fecha igual o posterior a la última lectura (%1$s)</string>
+    <string name="settings_section_costs">Costes</string>
+    <string name="settings_currency">Moneda</string>
+    <string name="settings_currency_device">La del dispositivo</string>
+    <string name="settings_currency_item">%1$s · %2$s</string>
+    <string name="import_duplicate_title">Ya está en tu garaje</string>
+    <plurals name="import_duplicate_body">
+        <item quantity="one">Ya tienes un vehículo llamado %1$s. Al importar se añade una segunda copia; no se combina nada.</item>
+        <item quantity="many">Ya tienes vehículos llamados %1$s. Al importar se añaden segundas copias; no se combina nada.</item>
+        <item quantity="other">Ya tienes vehículos llamados %1$s. Al importar se añaden segundas copias; no se combina nada.</item>
+    </plurals>
+    <string name="import_duplicate_confirm">Importar igualmente</string>
+    <string name="list_separator">", "</string>
+    <string name="delete_vehicle_confirm_title">¿Eliminar %1$s?</string>
+    <string name="delete_vehicle_confirm_body">El vehículo, su plan y todo su historial de mantenimiento se eliminan de forma permanente. No se puede deshacer. Exporta antes una copia si puedes necesitarla.</string>
+    <string name="delete_vehicle_confirm_action">Eliminar definitivamente</string>
 </resources>

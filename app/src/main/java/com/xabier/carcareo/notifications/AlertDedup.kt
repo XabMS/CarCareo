@@ -20,7 +20,9 @@ object AlertDedup {
 
         val gotWorse = lastStatusName != currentStatus.name &&
             !(lastStatusName == TaskStatus.OVERDUE.name && currentStatus == TaskStatus.UPCOMING)
-        val stale = todayEpochDay - lastEpochDay >= repeatAfterDays
+        // Long.MIN_VALUE = never notified; subtracting it would overflow.
+        val stale = lastEpochDay == Long.MIN_VALUE ||
+            todayEpochDay - lastEpochDay >= repeatAfterDays
         return gotWorse || stale
     }
 }
