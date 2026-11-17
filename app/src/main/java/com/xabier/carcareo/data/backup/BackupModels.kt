@@ -32,6 +32,9 @@ data class BackupVehicle(
     val lastConfirmedKmDate: String,
     val annualKmEstimate: Int,
     val purchaseDate: String? = null,
+    /** First reading the vehicle was entered with. Optional: absent in older files. */
+    val initialKm: Int? = null,
+    val initialKmDate: String? = null,
     val notes: String? = null,
     val archived: Boolean = false,
     val tasks: List<BackupTask> = emptyList(),

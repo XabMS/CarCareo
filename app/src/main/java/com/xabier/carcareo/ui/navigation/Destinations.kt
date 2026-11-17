@@ -8,8 +8,8 @@ package com.xabier.carcareo.ui.navigation
  */
 /**
  * Which tab of the vehicle shell a route lands on. The routes `vehicle/{id}`,
- * `plan/{id}` and `history/{id}` all render the same shell — notifications and
- * deep links still resolve, they just select a different tab.
+ * `plan/{id}` and `history/{id}` all render the same shell and only select a
+ * different starting tab.
  */
 enum class VehicleTab { OVERVIEW, PLAN, HISTORY }
 

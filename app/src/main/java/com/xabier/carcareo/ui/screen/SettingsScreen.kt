@@ -1,5 +1,7 @@
 package com.xabier.carcareo.ui.screen
 
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
@@ -37,14 +39,14 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -95,13 +97,19 @@ fun SettingsScreen(
     var pendingImportUri by rememberSaveable { mutableStateOf<android.net.Uri?>(null) }
     var showModeDialog by rememberSaveable { mutableStateOf(false) }
     var showReplaceConfirm by rememberSaveable { mutableStateOf(false) }
+    var showCurrencyDialog by rememberSaveable { mutableStateOf(false) }
 
     val scope = rememberCoroutineScope()
     val permissionDeniedMsg = stringResource(R.string.notif_permission_denied)
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission(),
     ) { granted ->
-        if (!granted) scope.launch { snackbar.showSnackbar(permissionDeniedMsg) }
+        if (!granted) {
+            // A reminder that cannot notify is a lie on the screen: switch the
+            // toggles back off and say why.
+            viewModel.onNotificationPermissionDenied()
+            scope.launch { snackbar.showSnackbar(permissionDeniedMsg) }
+        }
     }
 
     fun requestNotificationPermissionIfNeeded() {
@@ -280,6 +288,37 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(20.dp))
+            SectionLabelRow(stringResource(R.string.settings_section_costs))
+            LedgerCard {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { showCurrencyDialog = true }
+                        .padding(horizontal = 14.dp, vertical = 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        stringResource(R.string.settings_currency),
+                        style = LedgerText.rowTitle,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Text(
+                        state.currencyCode ?: stringResource(R.string.settings_currency_device),
+                        style = LedgerText.rowMeta,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
             SectionLabelRow(stringResource(R.string.settings_section_about))
             LedgerCard {
                 Row(
@@ -317,6 +356,43 @@ fun SettingsScreen(
         )
     }
 
+    if (showCurrencyDialog) {
+        CurrencyDialog(
+            selected = state.currencyCode,
+            onSelect = { code ->
+                viewModel.setCurrency(code)
+                showCurrencyDialog = false
+            },
+            onDismiss = { showCurrencyDialog = false },
+        )
+    }
+
+    state.pendingDuplicateImport?.let { pending ->
+        AlertDialog(
+            onDismissRequest = viewModel::cancelPendingImport,
+            title = { Text(stringResource(R.string.import_duplicate_title)) },
+            text = {
+                Text(
+                    pluralStringResource(
+                        R.plurals.import_duplicate_body,
+                        pending.names.size,
+                        pending.names.joinToString(stringResource(R.string.list_separator)),
+                    ),
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = viewModel::confirmPendingImport) {
+                    Text(stringResource(R.string.import_duplicate_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = viewModel::cancelPendingImport) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
     if (showReplaceConfirm) {
         AlertDialog(
             onDismissRequest = { showReplaceConfirm = false; pendingImportUri = null },
@@ -336,6 +412,60 @@ fun SettingsScreen(
             },
         )
     }
+}
+
+/** Currencies offered in Settings; null (first) means "follow the device". */
+private val CURRENCY_CHOICES: List<String?> = listOf(
+    null, "EUR", "USD", "GBP", "CHF", "MXN", "ARS", "COP", "CLP", "PEN", "BRL",
+    "CAD", "AUD", "JPY", "SEK", "NOK", "DKK", "PLN",
+)
+
+@Composable
+private fun CurrencyDialog(
+    selected: String?,
+    onSelect: (String?) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val locale = java.util.Locale.forLanguageTag(
+        androidx.compose.ui.text.intl.Locale.current.toLanguageTag(),
+    )
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_currency)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                CURRENCY_CHOICES.forEach { code ->
+                    val label = if (code == null) {
+                        stringResource(R.string.settings_currency_device)
+                    } else {
+                        val name = runCatching {
+                            java.util.Currency.getInstance(code).getDisplayName(locale)
+                        }.getOrNull()
+                        if (name == null) code
+                        else stringResource(R.string.settings_currency_item, code, name)
+                    }
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(
+                                selected = code == selected,
+                                role = Role.RadioButton,
+                                onClick = { onSelect(code) },
+                            )
+                            .padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        RadioButton(selected = code == selected, onClick = null)
+                        Spacer(Modifier.width(12.dp))
+                        Text(label, style = LedgerText.rowTitle)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_cancel)) }
+        },
+    )
 }
 
 @Composable

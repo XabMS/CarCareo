@@ -28,12 +28,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -58,6 +58,7 @@ import com.xabier.carcareo.ui.component.LedgerCard
 import com.xabier.carcareo.ui.component.LedgerSecondaryButton
 import com.xabier.carcareo.ui.component.MiniBar
 import com.xabier.carcareo.ui.component.SectionLabelRow
+import com.xabier.carcareo.ui.format.formatDate
 import com.xabier.carcareo.ui.format.formatNumber
 import com.xabier.carcareo.ui.plan.color
 import com.xabier.carcareo.ui.plan.intervalConsumed
@@ -154,6 +155,7 @@ fun OverviewTab(
     if (showUpdateKm) {
         UpdateOdometerDialog(
             previousConfirmedKm = vehicle.lastConfirmedKm,
+            previousConfirmedDate = vehicle.lastConfirmedKmDate,
             onDismiss = { showUpdateKm = false },
             onConfirm = { km, date ->
                 viewModel.confirmOdometer(km, date)
@@ -414,6 +416,7 @@ private fun InactiveBucketRow(task: MaintenanceTask) {
 @Composable
 private fun UpdateOdometerDialog(
     previousConfirmedKm: Int,
+    previousConfirmedDate: LocalDate,
     onDismiss: () -> Unit,
     onConfirm: (km: Int, date: LocalDate) -> Unit,
 ) {
@@ -423,7 +426,12 @@ private fun UpdateOdometerDialog(
 
     val km = kmText.trim().toIntOrNull()
     val severity = km?.let { OdometerUpdate.classify(previousConfirmedKm, it) }
-    val dateError = date.isAfter(LocalDate.now())
+    val futureDate = date.isAfter(LocalDate.now())
+    // A reading older than the one already stored is not an update: it would
+    // replace newer knowledge with older. (Correcting the stored reading itself
+    // is done from "Edit vehicle".)
+    val staleDate = date.isBefore(previousConfirmedDate)
+    val dateError = futureDate || staleDate
     val canSave = km != null && km >= 0 && !dateError &&
         (severity != KmChangeSeverity.MAJOR_DECREASE || majorConfirmed)
 
@@ -446,7 +454,14 @@ private fun UpdateOdometerDialog(
                     value = date,
                     onValueChange = { date = it },
                     isError = dateError,
-                    supportingText = if (dateError) stringResource(R.string.error_date_future) else null,
+                    supportingText = when {
+                        futureDate -> stringResource(R.string.error_date_future)
+                        staleDate -> stringResource(
+                            R.string.error_date_before_last_reading,
+                            formatDate(previousConfirmedDate),
+                        )
+                        else -> null
+                    },
                 )
                 when (severity) {
                     KmChangeSeverity.MINOR_DECREASE -> Text(

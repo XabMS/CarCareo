@@ -23,7 +23,8 @@ object WorkScheduler {
             wm.enqueueUniquePeriodicWork(
                 WORK_MAINTENANCE,
                 ExistingPeriodicWorkPolicy.UPDATE,
-                PeriodicWorkRequestBuilder<MaintenanceCheckWorker>(7, TimeUnit.DAYS).build(),
+                // Daily; AlertDedup limits how often an unchanged status repeats.
+                PeriodicWorkRequestBuilder<MaintenanceCheckWorker>(1, TimeUnit.DAYS).build(),
             )
         } else {
             wm.cancelUniqueWork(WORK_MAINTENANCE)
@@ -33,7 +34,11 @@ object WorkScheduler {
             wm.enqueueUniquePeriodicWork(
                 WORK_ODOMETER,
                 ExistingPeriodicWorkPolicy.UPDATE,
-                PeriodicWorkRequestBuilder<OdometerReminderWorker>(30, TimeUnit.DAYS).build(),
+                // A periodic request otherwise runs its first period immediately,
+                // i.e. it would nag the moment the user switches the reminder on.
+                PeriodicWorkRequestBuilder<OdometerReminderWorker>(30, TimeUnit.DAYS)
+                    .setInitialDelay(30, TimeUnit.DAYS)
+                    .build(),
             )
         } else {
             wm.cancelUniqueWork(WORK_ODOMETER)

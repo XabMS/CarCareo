@@ -6,7 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.xabier.carcareo.data.entity.Vehicle
 import com.xabier.carcareo.data.entity.VehicleCategory
 import com.xabier.carcareo.data.repository.VehicleRepository
+import com.xabier.carcareo.domain.KmChangeSeverity
+import com.xabier.carcareo.domain.OdometerUpdate
 import com.xabier.carcareo.ui.navigation.Destinations
+import java.time.Clock
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,13 +39,37 @@ data class VehicleFormState(
     val notes: String = "",
     /** Not user-editable here; carried so an edit-save doesn't un-archive. */
     val archived: Boolean = false,
+    /** First reading of the vehicle (see `Vehicle.initialKm`); not user-editable. */
+    val initialKm: Int? = null,
+    val initialKmDate: LocalDate? = null,
+    /** Edit only: the reading as stored, to detect and classify a change to it. */
+    val originalKm: Int? = null,
+    val originalKmDate: LocalDate? = null,
     val nameError: Boolean = false,
     val kmError: Boolean = false,
+    /** The reading date is in the future. */
+    val readDateError: Boolean = false,
+    /** The purchase date is in the future, or after the reading date. */
+    val purchaseDateError: Boolean = false,
+    /** Ticked by the user to accept a reading far below the stored one. */
+    val majorDecreaseConfirmed: Boolean = false,
+    val saving: Boolean = false,
     val loaded: Boolean = false,
     /** Bumped on every save attempt so the UI can react to a rejected submit. */
     val submitCount: Int = 0,
 ) {
     val isEdit: Boolean get() = id != null
+
+    /** How the typed reading compares with the stored one (always OK for a new vehicle). */
+    val kmSeverity: KmChangeSeverity
+        get() {
+            val previous = originalKm ?: return KmChangeSeverity.OK
+            val typed = lastConfirmedKm.trim().toIntOrNull() ?: return KmChangeSeverity.OK
+            return OdometerUpdate.classify(previous, typed)
+        }
+
+    val hasError: Boolean
+        get() = nameError || kmError || readDateError || purchaseDateError
 
     companion object {
         /** Default yearly mileage estimate, by vehicle type. */
@@ -56,6 +83,7 @@ data class VehicleFormState(
 class VehicleFormViewModel(
     savedStateHandle: SavedStateHandle,
     private val repository: VehicleRepository,
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) : ViewModel() {
 
     // Present only on the edit route (vehicleForm/{vehicleId}); absent when adding.
@@ -81,6 +109,10 @@ class VehicleFormViewModel(
                         annualKmEstimate = v.annualKmEstimate.toString(),
                         annualKmEdited = true,
                         purchaseDate = v.purchaseDate,
+                        initialKm = v.initialKm,
+                        initialKmDate = v.initialKmDate,
+                        originalKm = v.lastConfirmedKm,
+                        originalKmDate = v.lastConfirmedKmDate,
                         notes = v.notes.orEmpty(),
                         archived = v.archived,
                         loaded = true,
@@ -117,15 +149,35 @@ class VehicleFormViewModel(
      */
     fun save(onSaved: (Long) -> Unit) {
         val s = _state.value
+        // A second tap while the insert is still running would add the vehicle twice.
+        if (s.saving) return
+
+        val today = LocalDate.now(clock)
         val name = s.name.trim()
         val km = s.lastConfirmedKm.trim().toIntOrNull()
 
         val nameError = name.isEmpty()
         val kmError = km == null || km < 0
+        val readDateError = s.lastConfirmedKmDate.isAfter(today)
+        val purchaseDateError = s.purchaseDate != null &&
+            (s.purchaseDate.isAfter(today) || s.purchaseDate.isAfter(s.lastConfirmedKmDate))
+        val needsMajorConfirmation =
+            s.kmSeverity == KmChangeSeverity.MAJOR_DECREASE && !s.majorDecreaseConfirmed
         _state.update {
-            it.copy(nameError = nameError, kmError = kmError, submitCount = it.submitCount + 1)
+            it.copy(
+                nameError = nameError,
+                kmError = kmError,
+                readDateError = readDateError,
+                purchaseDateError = purchaseDateError,
+                submitCount = it.submitCount + 1,
+            )
         }
-        if (nameError || kmError) return
+        if (nameError || kmError || readDateError || purchaseDateError || needsMajorConfirmation) return
+
+        // The first reading is frozen at creation. While the vehicle still sits on
+        // it (never updated since), correcting the reading here corrects it too.
+        val stillOnInitialReading = s.initialKm == s.originalKm && s.initialKmDate == s.originalKmDate
+        val keepInitial = s.isEdit && !stillOnInitialReading
 
         val vehicle = Vehicle(
             id = s.id ?: 0,
@@ -141,18 +193,25 @@ class VehicleFormViewModel(
                 ?.takeIf { it > 0 }
                 ?: VehicleFormState.defaultAnnualKm(s.category),
             purchaseDate = s.purchaseDate,
+            initialKm = if (keepInitial) s.initialKm else km,
+            initialKmDate = if (keepInitial) s.initialKmDate else s.lastConfirmedKmDate,
             notes = s.notes.trim().ifBlank { null },
             archived = s.archived,
         )
 
+        _state.update { it.copy(saving = true) }
         viewModelScope.launch {
-            val id = if (s.id == null) {
-                repository.add(vehicle)
-            } else {
-                repository.update(vehicle)
-                s.id
+            try {
+                val id = if (s.id == null) {
+                    repository.add(vehicle)
+                } else {
+                    repository.update(vehicle)
+                    s.id
+                }
+                onSaved(id)
+            } finally {
+                _state.update { it.copy(saving = false) }
             }
-            onSaved(id)
         }
     }
 }

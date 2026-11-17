@@ -29,7 +29,7 @@ object OdometerConfirmation {
         // Editing the very record the confirmation came from: always re-apply, so
         // correcting a typo (50 000 -> 40 000) actually fixes the odometer instead
         // of leaving the vehicle on a value no record backs any more.
-        if (previous != null && previous.date == confirmed.date && previous.km == confirmed.km) {
+        if (previous != null && isSourceOf(previous, confirmed)) {
             return true
         }
         return when {
@@ -55,8 +55,17 @@ object OdometerConfirmation {
         deleted: RecordReading,
         confirmed: ConfirmedOdometer,
         newestRemaining: RecordReading?,
-    ): RecordReading? {
-        val cameFromDeleted = deleted.date == confirmed.date && deleted.km == confirmed.km
-        return if (cameFromDeleted) newestRemaining else null
-    }
+    ): RecordReading? =
+        if (isSourceOf(deleted, confirmed)) newestRemaining else null
+
+    /** Did the vehicle's confirmed odometer come from [record]? */
+    fun isSourceOf(record: RecordReading, confirmed: ConfirmedOdometer): Boolean =
+        record.date == confirmed.date && record.km == confirmed.km
+
+    /**
+     * The reading that best represents "now" among [readings]: the latest date,
+     * and on the same day the higher odometer (see [shouldConfirmOnSave]).
+     */
+    fun newest(readings: List<RecordReading>): RecordReading? =
+        readings.maxWithOrNull(compareBy<RecordReading> { it.date }.thenBy { it.km })
 }

@@ -116,4 +116,39 @@ class BackupCodecTest {
         val e = assertThrows(BackupException::class.java) { BackupCodec.decode(json) }
         assertEquals(BackupError.UNSUPPORTED_VERSION, e.error)
     }
+
+    private fun withVehicle(change: (BackupVehicle) -> BackupVehicle): String =
+        BackupCodec.encode(sample().let { it.copy(vehicles = listOf(change(it.vehicles[0]))) })
+
+    @Test
+    fun `a reading date in the future is rejected`() {
+        val today = java.time.LocalDate.of(2026, 9, 14)
+        val json = withVehicle { it.copy(lastConfirmedKmDate = "2026-12-01", purchaseDate = null) }
+        assertThrows(BackupException::class.java) { BackupCodec.decode(json, today) }
+    }
+
+    @Test
+    fun `tomorrow is tolerated for files written in a time zone ahead`() {
+        val today = java.time.LocalDate.of(2026, 9, 14)
+        val json = withVehicle {
+            it.copy(lastConfirmedKmDate = "2026-09-15", purchaseDate = null, records = emptyList())
+        }
+        BackupCodec.decode(json, today)
+    }
+
+    @Test
+    fun `negative warning margin is rejected`() {
+        val json = withVehicle {
+            it.copy(tasks = listOf(BackupTask(name = "Oil", intervalKm = 10_000, warnKmBefore = -1)))
+        }
+        assertThrows(BackupException::class.java) { BackupCodec.decode(json) }
+    }
+
+    @Test
+    fun `negative cost is rejected`() {
+        val json = withVehicle {
+            it.copy(records = listOf(BackupRecord(date = "2020-01-01", odometerKm = 10, cost = "-5.00")))
+        }
+        assertThrows(BackupException::class.java) { BackupCodec.decode(json) }
+    }
 }

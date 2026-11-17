@@ -12,10 +12,11 @@ import com.xabier.carcareo.domain.VehiclePlanStatus
 import java.time.LocalDate
 
 /**
- * Weekly check (spec F6). For every non-archived vehicle whose worst task status is
- * UPCOMING or OVERDUE, posts one grouped notification. Per-vehicle dedup avoids a
- * repeat notification for an unchanged situation: it only re-notifies when the
- * status gets worse, or once a week.
+ * Daily check (spec F6). For every non-archived vehicle whose worst task status is
+ * UPCOMING or OVERDUE, posts one grouped notification. It runs daily so a task
+ * that becomes due is reported within a day; the per-vehicle dedup ([AlertDedup])
+ * is what keeps that from nagging: an unchanged situation is only repeated once
+ * a week, a worse one is reported straight away.
  */
 class MaintenanceCheckWorker(
     context: Context,
@@ -26,6 +27,9 @@ class MaintenanceCheckWorker(
         val app = applicationContext as CarCareoApp
         val prefs = app.container.appPreferences
         if (!prefs.maintenanceAlertsEnabled) return Result.success()
+        // Nothing can be shown (permission denied / app notifications blocked), so
+        // don't record alerts as delivered: they must still fire once it can.
+        if (!Notifications.canPost(applicationContext)) return Result.success()
 
         val db = AppDatabase.get(applicationContext)
         val today = LocalDate.now()
@@ -47,6 +51,13 @@ class MaintenanceCheckWorker(
                 today = today,
             )
             val worst = status.vehicleStatus ?: continue
+            if (worst == TaskStatus.OK) {
+                // Back in order: forget the last alert, so the next problem is
+                // reported at once instead of waiting out the weekly repeat.
+                prefs.clearAlert(vehicle.id)
+                Notifications.cancelMaintenanceAlert(applicationContext, vehicle.id)
+                continue
+            }
 
             val memory = prefs.lastAlert(vehicle.id)
             val notify = AlertDedup.shouldNotify(

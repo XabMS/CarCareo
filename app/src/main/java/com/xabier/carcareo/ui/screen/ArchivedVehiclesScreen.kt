@@ -1,5 +1,11 @@
 package com.xabier.carcareo.ui.screen
 
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,7 +24,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -43,6 +48,9 @@ fun ArchivedVehiclesScreen(
     viewModel: ArchivedVehiclesViewModel = viewModel(factory = AppViewModelProvider.Factory),
 ) {
     val archived by viewModel.archived.collectAsStateWithLifecycle()
+    // Id only: it survives rotation, and the dialog simply disappears if the
+    // vehicle does.
+    var pendingDeleteId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     Column(
         Modifier
@@ -111,10 +119,39 @@ fun ArchivedVehiclesScreen(
                                 text = stringResource(R.string.action_unarchive),
                                 onClick = { viewModel.unarchive(vehicle.id) },
                             )
+                            Spacer(Modifier.width(12.dp))
+                            LedgerTextAction(
+                                text = stringResource(R.string.action_delete),
+                                onClick = { pendingDeleteId = vehicle.id },
+                            )
                         }
                     }
                 }
             }
         }
+    }
+
+    archived.firstOrNull { it.id == pendingDeleteId }?.let { vehicle ->
+        AlertDialog(
+            onDismissRequest = { pendingDeleteId = null },
+            title = { Text(stringResource(R.string.delete_vehicle_confirm_title, vehicle.name)) },
+            text = { Text(stringResource(R.string.delete_vehicle_confirm_body)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    viewModel.delete(vehicle.id)
+                    pendingDeleteId = null
+                }) {
+                    Text(
+                        stringResource(R.string.delete_vehicle_confirm_action),
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDeleteId = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
     }
 }

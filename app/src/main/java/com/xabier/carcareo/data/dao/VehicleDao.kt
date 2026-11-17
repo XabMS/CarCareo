@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
 import com.xabier.carcareo.data.entity.Vehicle
+import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -41,4 +42,17 @@ interface VehicleDao {
 
     @Delete
     suspend fun delete(vehicle: Vehicle)
+
+    /** Cascades to the vehicle's tasks, records and cross-refs. */
+    @Query("DELETE FROM vehicle WHERE id = :id")
+    suspend fun deleteById(id: Long)
+
+    @Query("UPDATE vehicle SET archived = :archived WHERE id = :id")
+    suspend fun setArchived(id: Long, archived: Boolean)
+
+    @Query("UPDATE vehicle SET lastConfirmedKm = :km, lastConfirmedKmDate = :date WHERE id = :id")
+    suspend fun confirmOdometer(id: Long, km: Int, date: LocalDate)
+
+    @Query("SELECT name FROM vehicle")
+    suspend fun getNames(): List<String>
 }

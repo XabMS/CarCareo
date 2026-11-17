@@ -2,6 +2,8 @@
 
 package com.xabier.carcareo.ui.log
 
+import com.xabier.carcareo.data.entity.MaintenanceRecord
+import com.xabier.carcareo.domain.KmChangeSeverity
 import androidx.lifecycle.SavedStateHandle
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -68,7 +70,7 @@ class LogMaintenanceViewModelTest {
             // "the single thread advanceUntilIdle() drives" — not a real UI thread.
             .allowMainThreadQueries()
             .build()
-        vehicleRepository = VehicleRepository(db.vehicleDao())
+        vehicleRepository = VehicleRepository(db)
         taskRepository = MaintenanceTaskRepository(db.maintenanceTaskDao())
         recordRepository = MaintenanceRecordRepository(db)
 
@@ -183,5 +185,83 @@ class LogMaintenanceViewModelTest {
         vm.save { completions++ }
         advanceUntilIdle()
         assertEquals(1, completions)
+    }
+
+    @Test
+    fun `a back-dated record at a lower mileage needs no decrease confirmation`() = runTest(testDispatcher) {
+        val vm = viewModel()
+        vm.setDate(today.minusYears(1))
+        vm.setOdometer("20000") // 60% below the confirmed 50 000, but a year older
+        assertEquals(KmChangeSeverity.OK, vm.ui.value.kmSeverity)
+        assertFalse(vm.ui.value.confirmsOdometer)
+
+        var saved = false
+        vm.save { saved = true }
+        advanceUntilIdle()
+
+        assertTrue(saved)
+        // History, not a new reading: the odometer is untouched.
+        assertEquals(50_000, db.vehicleDao().get(vehicleId)!!.lastConfirmedKm)
+    }
+
+    @Test
+    fun `editing an old record needs no decrease confirmation`() = runTest(testDispatcher) {
+        val recordId = recordRepository.save(
+            MaintenanceRecord(vehicleId = vehicleId, date = today.minusYears(2), odometerKm = 10_000),
+            emptyList(),
+        )
+        val handle = SavedStateHandle(
+            mapOf(Destinations.VEHICLE_ID_ARG to vehicleId, Destinations.RECORD_ID_ARG to recordId),
+        )
+        val vm = LogMaintenanceViewModel(handle, vehicleRepository, taskRepository, recordRepository, clock)
+        advanceUntilIdle()
+
+        assertEquals(KmChangeSeverity.OK, vm.ui.value.kmSeverity)
+        vm.setNotes("new pads")
+        var saved = false
+        vm.save { saved = true }
+        advanceUntilIdle()
+        assertTrue(saved)
+    }
+
+    @Test
+    fun `the km field follows the picked date until the user types a reading`() = runTest(testDispatcher) {
+        db.vehicleDao().confirmOdometer(vehicleId, 50_000, today.minusDays(365))
+        val vm = viewModel()
+        // A year on at 12 000 km/year: an estimate, and flagged as one.
+        assertEquals("62000", vm.ui.value.odometer)
+        assertTrue(vm.ui.value.odometerIsEstimate)
+
+        vm.setDate(today.minusDays(365))
+        assertEquals("50000", vm.ui.value.odometer)
+
+        vm.setOdometer("50500")
+        vm.setDate(today)
+        assertEquals("50500", vm.ui.value.odometer) // typed by the user: left alone
+        assertFalse(vm.ui.value.odometerIsEstimate)
+    }
+
+    @Test
+    fun `a half-filled form survives the ViewModel being recreated`() = runTest(testDispatcher) {
+        val handle = SavedStateHandle(mapOf(Destinations.VEHICLE_ID_ARG to vehicleId))
+        val first = LogMaintenanceViewModel(handle, vehicleRepository, taskRepository, recordRepository, clock)
+        advanceUntilIdle()
+        first.setDate(today.minusDays(3))
+        first.setOdometer("50123")
+        first.setWorkshop("Taller Paco")
+        first.setCost("89,90")
+        first.toggleTask(first.ui.value.tasks.first().taskId) // untick the pre-selected task
+        advanceUntilIdle()
+
+        // Process death: same saved state, brand-new ViewModel.
+        val restored = LogMaintenanceViewModel(handle, vehicleRepository, taskRepository, recordRepository, clock)
+        advanceUntilIdle()
+
+        val state = restored.ui.value
+        assertEquals(today.minusDays(3), state.date)
+        assertEquals("50123", state.odometer)
+        assertEquals("Taller Paco", state.workshop)
+        assertEquals("89,90", state.cost)
+        assertTrue(state.selectedTaskIds.isEmpty())
     }
 }

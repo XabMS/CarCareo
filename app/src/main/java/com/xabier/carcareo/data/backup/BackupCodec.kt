@@ -38,7 +38,7 @@ object BackupCodec {
      * Parses and fully validates. Throws [BackupException] on any problem;
      * returns a structurally-sound [BackupFile] otherwise.
      */
-    fun decode(text: String): BackupFile {
+    fun decode(text: String, today: LocalDate = LocalDate.now()): BackupFile {
         val parsed = try {
             json.decodeFromString(BackupFile.serializer(), text)
         } catch (e: Exception) {
@@ -53,7 +53,7 @@ object BackupCodec {
         }
 
         try {
-            validate(parsed)
+            validate(parsed, today)
         } catch (e: BackupException) {
             throw e
         } catch (e: Exception) {
@@ -62,12 +62,21 @@ object BackupCodec {
         return parsed
     }
 
-    private fun validate(backup: BackupFile) {
+    private fun validate(backup: BackupFile, today: LocalDate) {
+        // The app never stores a future date, so one in a file means the file is
+        // wrong. One day of slack: a backup written late in the evening and read
+        // in a time zone further west is legitimately "tomorrow" there.
+        val latest = today.plusDays(1)
+        fun pastDate(text: String): LocalDate =
+            LocalDate.parse(text).also { require(!it.isAfter(latest)) { "date $text is in the future" } }
+
         for (v in backup.vehicles) {
             require(v.name.isNotBlank())
             VehicleCategory.valueOf(v.category)          // throws IllegalArgumentException if unknown
-            LocalDate.parse(v.lastConfirmedKmDate)
-            v.purchaseDate?.let(LocalDate::parse)
+            val confirmedOn = pastDate(v.lastConfirmedKmDate)
+            v.purchaseDate?.let { require(!pastDate(it).isAfter(confirmedOn)) }
+            v.initialKmDate?.let(::pastDate)
+            v.initialKm?.let { require(it >= 0) }
             require(v.lastConfirmedKm >= 0)
             require(v.annualKmEstimate >= 0)
 
@@ -85,11 +94,14 @@ object BackupCodec {
                 }
                 t.intervalKm?.let { require(it > 0) }
                 t.intervalMonths?.let { require(it > 0) }
+                require(t.warnKmBefore >= 0)
+                require(t.warnDaysBefore >= 0)
             }
             for (r in v.records) {
-                LocalDate.parse(r.date)
+                pastDate(r.date)
                 require(r.odometerKm >= 0)
-                r.cost?.let { BigDecimal(it) }           // NumberFormatException if not a decimal
+                // NumberFormatException if not a decimal.
+                r.cost?.let { require(BigDecimal(it) >= BigDecimal.ZERO) }
             }
         }
     }

@@ -196,10 +196,10 @@
     <!-- Notifications (F6) -->
     <string name="settings_section_notifications">Reminders</string>
     <string name="settings_maintenance_alerts">Maintenance alerts</string>
-    <string name="settings_maintenance_alerts_desc">A weekly check; one notification per vehicle when something is due or coming up.</string>
+    <string name="settings_maintenance_alerts_desc">Checked daily; one notification per vehicle when something is due or coming up, repeated weekly while it stays that way.</string>
     <string name="settings_odometer_reminder">Monthly odometer reminder</string>
     <string name="settings_odometer_reminder_desc">A nudge to keep your mileage up to date.</string>
-    <string name="notif_permission_denied">Reminders are on, but notifications are blocked for this app in system settings.</string>
+    <string name="notif_permission_denied">Reminders were switched off: notifications are blocked for this app in system settings.</string>
 
     <string name="notif_channel_maintenance">Maintenance alerts</string>
     <string name="notif_channel_maintenance_desc">When a vehicle has a task due or coming up.</string>
@@ -328,4 +328,25 @@
         <item quantity="one">Last one was %1$s month ago.</item>
         <item quantity="other">Last one was %1$s months ago.</item>
     </plurals>
+
+    <!-- Review follow-up: validation, vehicle deletion, currency, import duplicates -->
+    <string name="error_save_failed">Couldn\'t save the record. Check the ticked tasks and try again.</string>
+    <string name="log_odometer_estimated">Estimated for that date — check it against the real reading.</string>
+    <string name="error_purchase_date">The purchase date can\'t be in the future or after the reading date</string>
+    <string name="form_confirm_lower_km">Tick the box to confirm the lower reading</string>
+    <string name="error_date_before_last_reading">Pick a date on or after the last reading (%1$s)</string>
+    <string name="settings_section_costs">Costs</string>
+    <string name="settings_currency">Currency</string>
+    <string name="settings_currency_device">Device default</string>
+    <string name="settings_currency_item">%1$s · %2$s</string>
+    <string name="import_duplicate_title">Already in your garage</string>
+    <plurals name="import_duplicate_body">
+        <item quantity="one">You already have a vehicle named %1$s. Importing adds a second copy; nothing is merged.</item>
+        <item quantity="other">You already have vehicles named %1$s. Importing adds second copies; nothing is merged.</item>
+    </plurals>
+    <string name="import_duplicate_confirm">Import anyway</string>
+    <string name="list_separator">", "</string>
+    <string name="delete_vehicle_confirm_title">Delete %1$s?</string>
+    <string name="delete_vehicle_confirm_body">The vehicle, its plan and its whole maintenance history are permanently deleted. This cannot be undone. Export a backup first if you might need it.</string>
+    <string name="delete_vehicle_confirm_action">Delete permanently</string>
 </resources>

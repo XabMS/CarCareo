@@ -76,9 +76,20 @@ object PlanStatusCalculator {
         )
     }
 
-    /** Spec 4.2: acquisition date/km, else the first confirmed odometer. */
+    /**
+     * Spec 4.2: acquisition date/km, else the first odometer the vehicle was
+     * entered with. Deliberately NOT the last confirmed odometer: that one moves
+     * forward with every update, which would keep pushing the due point of every
+     * never-done task ahead of the car so it could never become overdue.
+     */
     fun baselineFor(vehicle: Vehicle): BaselineRef {
-        val date = vehicle.purchaseDate ?: vehicle.lastConfirmedKmDate
+        val purchaseDate = vehicle.purchaseDate
+        if (purchaseDate == null) {
+            val km = vehicle.initialKm
+            val date = vehicle.initialKmDate
+            if (km != null && date != null) return BaselineRef(date = date, km = km)
+        }
+        val date = purchaseDate ?: vehicle.lastConfirmedKmDate
         val km = OdometerEstimator.kmAt(
             lastConfirmedKm = vehicle.lastConfirmedKm,
             lastConfirmedKmDate = vehicle.lastConfirmedKmDate,

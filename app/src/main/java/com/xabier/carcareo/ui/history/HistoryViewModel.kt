@@ -9,6 +9,7 @@ import com.xabier.carcareo.data.relation.RecordWithTasks
 import com.xabier.carcareo.data.repository.MaintenanceRecordRepository
 import com.xabier.carcareo.data.repository.MaintenanceTaskRepository
 import com.xabier.carcareo.domain.CostSummary
+import com.xabier.carcareo.domain.todayFlow
 import com.xabier.carcareo.ui.navigation.Destinations
 import java.math.BigDecimal
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,22 +46,27 @@ class HistoryViewModel(
             recordRepository.observeForVehicle(vehicleId),
             taskRepository.observeForVehicle(vehicleId),
             filter,
-        ) { records, tasks, filterTaskId ->
+            // The 12-month window slides with the calendar; see GarageViewModel.
+            todayFlow(),
+        ) { records, tasks, filterTaskId, today ->
             val allRecords = records.map { it.record }
-            val shown = if (filterTaskId == null) {
-                records
-            } else {
-                records.filter { rwt -> rwt.tasks.any { it.id == filterTaskId } }
+            val filtered = filterTaskId?.let { id ->
+                records.filter { rwt -> rwt.tasks.any { it.id == id } }
             }
+            val shown = filtered?.takeIf { it.isNotEmpty() } ?: records
             HistoryUiState(
                 loading = false,
                 entries = shown,
                 totalRecords = allRecords.size,
                 filterableTasks = tasks
                     .filter { task -> records.any { rwt -> rwt.tasks.any { it.id == task.id } } },
-                activeFilterTaskId = filterTaskId,
+                // A filter whose task no longer appears in any record has no chip
+                // left to switch it off with; treat it as cleared.
+                activeFilterTaskId = filterTaskId?.takeIf { id ->
+                    records.any { rwt -> rwt.tasks.any { it.id == id } }
+                },
                 totalCost = CostSummary.total(allRecords),
-                last12MonthsCost = CostSummary.lastMonths(allRecords, months = 12),
+                last12MonthsCost = CostSummary.lastMonths(allRecords, months = 12, today = today),
                 showCosts = CostSummary.hasAnyCost(allRecords),
             )
         }.stateIn(

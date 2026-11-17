@@ -1,15 +1,23 @@
 package com.xabier.carcareo.data.repository
 
-import com.xabier.carcareo.data.dao.VehicleDao
+import androidx.room.withTransaction
+import com.xabier.carcareo.data.AppDatabase
+import com.xabier.carcareo.data.DataHooks
 import com.xabier.carcareo.data.entity.Vehicle
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Thin layer over [VehicleDao]. Repositories exist so ViewModels never touch Room
- * directly (spec architecture) and so cross-entity operations have one home.
+ * Thin layer over the vehicle DAO. Repositories exist so ViewModels never touch
+ * Room directly (spec architecture) and so cross-entity operations have one home.
  */
-class VehicleRepository(private val dao: VehicleDao) {
+class VehicleRepository(
+    private val db: AppDatabase,
+    private val hooks: DataHooks = DataHooks.None,
+) {
+
+    private val dao = db.vehicleDao()
+    private val recordDao = db.maintenanceRecordDao()
 
     fun observeActive(): Flow<List<Vehicle>> = dao.observeActive()
 
@@ -25,19 +33,29 @@ class VehicleRepository(private val dao: VehicleDao) {
 
     suspend fun update(vehicle: Vehicle) = dao.update(vehicle)
 
-    suspend fun delete(vehicle: Vehicle) = dao.delete(vehicle)
+    /**
+     * Permanently deletes a vehicle with its whole plan and history (cascade).
+     * Attachments only its records pointed at lose their read grant.
+     */
+    suspend fun delete(id: Long) {
+        val orphaned = db.withTransaction {
+            val uris = recordDao.attachmentUris(id)
+            dao.deleteById(id)
+            uris.filter { recordDao.countWithAttachment(it) == 0 }
+        }
+        orphaned.forEach(hooks::onAttachmentUnused)
+        hooks.onVehicleAlertStale(id)
+    }
 
     suspend fun setArchived(id: Long, archived: Boolean) {
-        val current = dao.get(id) ?: return
-        dao.update(current.copy(archived = archived))
+        dao.setArchived(id, archived)
+        if (archived) hooks.onVehicleAlertStale(id)
     }
 
     /**
      * Records a user-confirmed odometer value. Callers are responsible for having
      * already checked the decrease severity (see domain.OdometerUpdate).
      */
-    suspend fun confirmOdometer(id: Long, km: Int, date: LocalDate) {
-        val current = dao.get(id) ?: return
-        dao.update(current.copy(lastConfirmedKm = km, lastConfirmedKmDate = date))
-    }
+    suspend fun confirmOdometer(id: Long, km: Int, date: LocalDate) =
+        dao.confirmOdometer(id, km, date)
 }

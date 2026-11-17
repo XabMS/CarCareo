@@ -2,6 +2,9 @@
 
 package com.xabier.carcareo.ui.vehicle
 
+import com.xabier.carcareo.data.entity.Vehicle
+import com.xabier.carcareo.ui.navigation.Destinations
+import java.time.LocalDate
 import androidx.lifecycle.SavedStateHandle
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
@@ -43,7 +46,7 @@ class VehicleFormViewModelTest {
             .setTransactionExecutor(testDispatcher.asExecutor())
             .allowMainThreadQueries()
             .build()
-        repository = VehicleRepository(db.vehicleDao())
+        repository = VehicleRepository(db)
     }
 
     @After
@@ -110,5 +113,89 @@ class VehicleFormViewModelTest {
 
         assertTrue(savedId != null)
         assertEquals("Test", repository.get(savedId!!)?.name)
+    }
+
+    @Test
+    fun `a second tap while saving does not add the vehicle twice`() = runTest(testDispatcher) {
+        val vm = newVehicleViewModel()
+        advanceUntilIdle()
+        vm.edit { it.copy(name = "Test", lastConfirmedKm = "1000") }
+        var calls = 0
+        vm.save { calls++ }
+        vm.save { calls++ } // lands before the first insert has run
+        advanceUntilIdle()
+
+        assertEquals(1, calls)
+        assertEquals(1, db.vehicleDao().getAll().size)
+    }
+
+    @Test
+    fun `a new vehicle freezes its first reading`() = runTest(testDispatcher) {
+        val vm = newVehicleViewModel()
+        advanceUntilIdle()
+        val readOn = LocalDate.now().minusDays(3)
+        vm.edit { it.copy(name = "Test", lastConfirmedKm = "1234", lastConfirmedKmDate = readOn) }
+        var id = 0L
+        vm.save { id = it }
+        advanceUntilIdle()
+
+        val stored = repository.get(id)!!
+        assertEquals(1234, stored.initialKm)
+        assertEquals(readOn, stored.initialKmDate)
+    }
+
+    @Test
+    fun `future reading date and misplaced purchase date are rejected`() = runTest(testDispatcher) {
+        val vm = newVehicleViewModel()
+        advanceUntilIdle()
+        vm.edit {
+            it.copy(name = "Test", lastConfirmedKm = "1000", lastConfirmedKmDate = LocalDate.now().plusDays(2))
+        }
+        var saved = false
+        vm.save { saved = true }
+        advanceUntilIdle()
+        assertFalse(saved)
+        assertTrue(vm.state.value.readDateError)
+
+        val readOn = LocalDate.now().minusDays(10)
+        vm.edit { it.copy(lastConfirmedKmDate = readOn, purchaseDate = readOn.plusDays(1)) }
+        vm.save { saved = true }
+        advanceUntilIdle()
+        assertFalse(saved)
+        assertTrue(vm.state.value.purchaseDateError)
+    }
+
+    @Test
+    fun `lowering the reading a lot when editing needs confirmation`() = runTest(testDispatcher) {
+        val firstDate = LocalDate.now().minusYears(1)
+        val id = repository.add(
+            Vehicle(
+                name = "Test",
+                category = VehicleCategory.COCHE_TERMICO,
+                lastConfirmedKm = 50_000,
+                lastConfirmedKmDate = LocalDate.now().minusDays(5),
+                initialKm = 40_000,
+                initialKmDate = firstDate,
+            ),
+        )
+        val vm = VehicleFormViewModel(SavedStateHandle(mapOf(Destinations.VEHICLE_ID_ARG to id)), repository)
+        advanceUntilIdle()
+
+        vm.edit { it.copy(lastConfirmedKm = "30000") }
+        var saved = false
+        vm.save { saved = true }
+        advanceUntilIdle()
+        assertFalse(saved)
+
+        vm.edit { it.copy(majorDecreaseConfirmed = true) }
+        vm.save { saved = true }
+        advanceUntilIdle()
+        assertTrue(saved)
+
+        val stored = repository.get(id)!!
+        assertEquals(30_000, stored.lastConfirmedKm)
+        // The vehicle had moved on from its first reading, so that stays frozen.
+        assertEquals(40_000, stored.initialKm)
+        assertEquals(firstDate, stored.initialKmDate)
     }
 }
